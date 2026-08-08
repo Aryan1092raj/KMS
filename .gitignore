@@ -1,5 +1,5 @@
 backend/.env
-fronten/.env.local
+frontend/.env.local
 docs/
 .venv/
 .agents/

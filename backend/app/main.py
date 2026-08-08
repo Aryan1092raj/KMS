@@ -1,0 +1,85 @@
+import asyncio
+import json
+
+import bcrypt
+# Passlib + Bcrypt compatibility patch
+if not hasattr(bcrypt, "__about__"):
+    class About:
+        __version__ = getattr(bcrypt, "__version__", "4.0.0")
+    bcrypt.__about__ = About
+
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi.middleware.cors import CORSMiddleware
+
+from app.api import admin, auth, keys, proximity, sessions
+from app.core.config import get_settings
+from app.core.redis_client import close_redis, get_redis, live_status_channel
+from app.workers.mqtt_listener import run_mqtt_listener
+from app.workers.scheduler import start_scheduler, stop_scheduler
+
+settings = get_settings()
+
+app = FastAPI(
+    title="SKSS API",
+    description="Smart Key Storage System — IIT Mandi SNTC",
+    version="1.0.0",
+    docs_url="/docs",
+    redoc_url="/redoc",
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.allowed_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Register routers
+app.include_router(proximity.router)
+app.include_router(auth.router)
+app.include_router(sessions.router)
+app.include_router(keys.router)
+app.include_router(admin.router)
+
+
+@app.on_event("startup")
+async def startup() -> None:
+    # Start APScheduler for notification jobs
+    start_scheduler()
+    # Start MQTT listener as background task
+    asyncio.create_task(run_mqtt_listener())
+
+
+@app.on_event("shutdown")
+async def shutdown() -> None:
+    stop_scheduler()
+    await close_redis()
+
+
+@app.get("/health", tags=["health"])
+async def health() -> dict:
+    return {"status": "ok", "service": "SKSS API"}
+
+
+@app.websocket("/ws/keys")
+async def websocket_keys(websocket: WebSocket):
+    """WebSocket endpoint for real-time key status updates."""
+    await websocket.accept()
+    redis = get_redis()
+    pubsub = redis.pubsub()
+    await pubsub.subscribe(live_status_channel())
+
+    try:
+        # Send initial connection confirmation
+        await websocket.send_text(json.dumps({"type": "connected"}))
+
+        # Listen for Redis pub/sub messages and forward to WebSocket
+        async for message in pubsub.listen():
+            if message["type"] == "message":
+                await websocket.send_text(message["data"])
+    except WebSocketDisconnect:
+        pass
+    finally:
+        await pubsub.unsubscribe(live_status_channel())
+        await pubsub.aclose()
