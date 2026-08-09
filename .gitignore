@@ -21,6 +21,10 @@ node_modules/
 out/
 *.tsbuildinfo
 
+# cloudflare / opennext build output
+.open-next/
+.wrangler/
+
 # docs / agent tooling
 docs/
 *.pdf
