@@ -6,28 +6,28 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "cf:build": "opennextjs-cloudflare build",
+    "cf:preview": "opennextjs-cloudflare build && wrangler dev",
+    "cf:deploy": "opennextjs-cloudflare build && wrangler deploy"
   },
   "dependencies": {
-    "@supabase/ssr": "^0.12.4",
-    "@supabase/supabase-js": "^2.112.2",
     "animejs": "^4.5.0",
-    "clsx": "^2.1.1",
     "date-fns": "^3.6.0",
-    "next": "14.2.5",
+    "next": "14.2.35",
     "qrcode.react": "^3.1.0",
     "react": "^18",
     "react-dom": "^18",
-    "react-dropzone": "^14.2.3",
-    "react-hot-toast": "^2.4.1",
     "recharts": "^2.12.7"
   },
   "devDependencies": {
+    "@opennextjs/cloudflare": "1.15.0",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "eslint": "^8",
-    "eslint-config-next": "14.2.5",
-    "typescript": "^5"
+    "eslint-config-next": "14.2.35",
+    "typescript": "^5",
+    "wrangler": "^4.59.2"
   }
 }
