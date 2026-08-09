@@ -23,6 +23,7 @@ out/
 
 # docs / agent tooling
 docs/
+*.pdf
 .agents/
 .claude/
 .playwright-mcp/
