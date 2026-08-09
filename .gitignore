@@ -29,6 +29,10 @@ docs/
 .playwright-mcp/
 skills-lock.json
 
+# tests (kept local, not tracked)
+backend/tests/
+backend/pytest.ini
+
 # build / os
 dist/
 build/
