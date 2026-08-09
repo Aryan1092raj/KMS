@@ -16,6 +16,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 #include <WiFi.h>
+#include <WiFiClientSecure.h>
 #include <DNSServer.h>
 #include <WebServer.h>
 #include <PubSubClient.h>
@@ -36,7 +37,16 @@ static const int PIN_SLOTS[8]  = { 13, 14, 16, 17, 18, 19, 21, 22 }; // slots 1.
 IPAddress apIP(AP_IP);
 DNSServer dnsServer;
 WebServer web(80);
+
+#if MQTT_TLS
+// The broker is now reachable from the public internet, so an unverified socket
+// would let anyone who can MITM the connection publish a `dispense` command and
+// empty the rack. The nonce cache stops replays, not a forged broker — so the
+// root cert is pinned rather than calling setInsecure().
+WiFiClientSecure net;
+#else
 WiFiClient net;
+#endif
 PubSubClient mqtt(net);
 
 char proximityCode[CODE_LENGTH + 1] = {0};
@@ -196,6 +206,7 @@ void onMessage(char *topic, byte *payload, unsigned int length) {
 
 void mqttConnect() {
   if (mqtt.connected()) return;
+
   const String clientId = String("kms-") + DEVICE_UUID;
   const bool ok = strlen(MQTT_USERNAME)
     ? mqtt.connect(clientId.c_str(), MQTT_USERNAME, MQTT_PASSWORD)
@@ -284,9 +295,27 @@ void setup() {
   web.onNotFound(handleProbe);
   web.begin();
 
+#if MQTT_TLS
+  // Cert validation compares notBefore/notAfter against the system clock, which
+  // starts at epoch 0 on a cold boot. Without this every handshake fails as
+  // "certificate not yet valid" and the only symptom is rc=-2 in the log.
+  // Not fatal if it times out — the AP keeps serving codes and MQTT retries.
+  configTime(0, 0, "pool.ntp.org", "time.nist.gov");
+  Serial.print("[ntp] syncing");
+  for (int i = 0; i < 40 && time(nullptr) < 1700000000; i++) {
+    delay(250);
+    Serial.print(".");
+  }
+  Serial.printf("\n[ntp] epoch %ld\n", (long)time(nullptr));
+
+  net.setCACert(MQTT_ROOT_CA);
+#endif
+
   mqtt.setServer(MQTT_HOST, MQTT_PORT);
   mqtt.setCallback(onMessage);
-  mqtt.setBufferSize(512);
+  // TLS framing overhead pushes records past the 512 that plaintext needs, and
+  // PubSubClient drops oversized publishes silently rather than erroring.
+  mqtt.setBufferSize(MQTT_TLS ? 1024 : 512);
 
   generateCode();
   Serial.printf("[code] initial %s\n", proximityCode);
