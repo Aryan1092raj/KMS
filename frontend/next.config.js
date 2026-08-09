@@ -27,13 +27,26 @@ const nextConfig = {
     return [
       {
         source: "/api/:path*",
-        // Server-side only. INTERNAL_API_URL is the compose-network address in
-        // production; NEXT_PUBLIC_API_URL is what the browser bundle needs and is
-        // deliberately not read here — it can't be, it's inlined at build time.
+        // Server-side only. INTERNAL_API_URL is a wrangler var in production and
+        // the compose-network address in Docker; NEXT_PUBLIC_API_URL is what the
+        // browser bundle needs and is deliberately not read here — it can't be,
+        // it's inlined at build time.
+        //
+        // Keeping /api same-origin is what makes the session cookie work: the
+        // backend sets it SameSite=Lax, so a cross-origin XHR would drop it.
         destination: `${process.env.INTERNAL_API_URL || "http://localhost:8000"}/:path*`,
       },
     ];
   },
 };
+
+// Rewrites are baked in at build time, so a missing INTERNAL_API_URL silently
+// ships a bundle pointing at localhost — every /api call then 502s in production
+// with nothing in the logs explaining why. Fail the build instead.
+if (process.env.NODE_ENV === "production" && !process.env.INTERNAL_API_URL) {
+  throw new Error(
+    "INTERNAL_API_URL must be set for a production build (e.g. https://sntc-kms-api.onrender.com)"
+  );
+}
 
 module.exports = nextConfig;
