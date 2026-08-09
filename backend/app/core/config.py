@@ -6,9 +6,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     # ── Application ──────────────────────────────────────────────
-    app_name: str = "SNTC API"
     debug: bool = False
-    secret_key: str = "CHANGE_ME_IN_PRODUCTION_USE_OPENSSL_RAND"
     allowed_origins_raw: str = Field(default="http://localhost:3000", validation_alias="allowed_origins")
 
     @property
