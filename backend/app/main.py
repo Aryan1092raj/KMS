@@ -20,11 +20,14 @@ from app.workers.scheduler import start_scheduler, stop_scheduler
 settings = get_settings()
 
 app = FastAPI(
-    title="SKSS API",
+    title="SNTC API",
     description="Smart Key Storage System — IIT Mandi SNTC",
     version="1.0.0",
-    docs_url="/docs",
-    redoc_url="/redoc",
+    # The schema endpoints publish every route, field and auth shape. Debug only.
+    # openapi_url must be nulled too — Swagger UI is just a reader for it.
+    docs_url="/docs" if settings.debug else None,
+    redoc_url="/redoc" if settings.debug else None,
+    openapi_url="/openapi.json" if settings.debug else None,
 )
 
 app.add_middleware(
@@ -59,7 +62,7 @@ async def shutdown() -> None:
 
 @app.get("/health", tags=["health"])
 async def health() -> dict:
-    return {"status": "ok", "service": "SKSS API"}
+    return {"status": "ok", "service": "SNTC API"}
 
 
 @app.websocket("/ws/keys")

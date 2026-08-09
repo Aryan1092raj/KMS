@@ -1,0 +1,76 @@
+# Production topology.
+#
+#   docker compose -f docker-compose.prod.yml build
+#   docker compose -f docker-compose.prod.yml up -d
+#
+# docker-compose.yml (dev) bind-mounts ./frontend and ./backend over /app and runs
+# `npm run dev` / `uvicorn --reload`. That throws away the built image layers, which
+# is right for hot reload and wrong for a deploy. Nothing here mounts source.
+#
+# Postgres and Redis publish no host ports — only the compose network reaches them.
+# Mosquitto keeps 1883 because ESP32 enclosures dial in from the campus LAN.
+#
+# Requires a .env beside this file with POSTGRES_USER and POSTGRES_PASSWORD set.
+
+services:
+  mosquitto:
+    image: eclipse-mosquitto:2
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?set POSTGRES_USER in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-skss}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    # Published because the browser opens /ws/keys against it directly — the Next
+    # rewrite only covers /api and does not upgrade websockets.
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./backend/.env
+    depends_on:
+      - mosquitto
+      - redis
+      - postgres
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        # Inlined into the browser bundle at build time. Must be the publicly
+        # reachable backend URL — the browser opens /ws/keys against it directly.
+        NEXT_PUBLIC_API_URL: ${PUBLIC_API_URL:?set PUBLIC_API_URL in .env, e.g. https://api.sntc.example.com}
+    ports:
+      - "3000:3000"
+    environment:
+      # Server-side rewrite target, resolved over the compose network.
+      INTERNAL_API_URL: http://backend:8000
+      # standalone server.js binds localhost without this, unreachable from outside.
+      HOSTNAME: "0.0.0.0"
+      PORT: "3000"
+      NODE_ENV: production
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
