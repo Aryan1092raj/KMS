@@ -27,10 +27,10 @@ const nextConfig = {
     return [
       {
         source: "/api/:path*",
-        // Server-side only. INTERNAL_API_URL is a wrangler var in production and
-        // the compose-network address in Docker; NEXT_PUBLIC_API_URL is what the
-        // browser bundle needs and is deliberately not read here — it can't be,
-        // it's inlined at build time.
+        // Server-side only. INTERNAL_API_URL is a Vercel environment variable in
+        // production and the compose-network address in Docker; NEXT_PUBLIC_API_URL
+        // is what the browser bundle needs and is deliberately not read here — it
+        // can't be, it's inlined at build time.
         //
         // Keeping /api same-origin is what makes the session cookie work: the
         // backend sets it SameSite=Lax, so a cross-origin XHR would drop it.

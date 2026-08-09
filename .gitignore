@@ -21,7 +21,8 @@ node_modules/
 out/
 *.tsbuildinfo
 
-# cloudflare / opennext build output
+# stale Cloudflare build output — the adapter is gone, these dirs are leftovers
+# from before the switch to Vercel. Safe to rm -rf frontend/.open-next .wrangler.
 .open-next/
 .wrangler/
 

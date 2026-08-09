@@ -1,0 +1,41 @@
+# Render blueprint — https://render.com/docs/blueprint-spec
+#
+# One Docker web service. Postgres and Redis are external (Neon and Upstash),
+# so they are not declared here; their URLs arrive as environment variables.
+services:
+  - type: web
+    name: sntc-kms-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: free
+    region: singapore
+    healthCheckPath: /health
+    # The scheduler and (when enabled) the MQTT listener run in-process, and the
+    # Dockerfile runs `alembic upgrade head` on boot. More than one instance
+    # would duplicate every scheduled notification and race the migration.
+    numInstances: 1
+    envVars:
+      # sync: false = Render prompts on first deploy and stores the value in its
+      # own encrypted store. Nothing secret is committed here.
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: ALLOWED_ORIGINS
+        sync: false
+      - key: EMAIL_ADDRESS
+        sync: false
+      - key: EMAIL_APP_PASSWORD
+        sync: false
+      - key: DEBUG
+        value: "false"
+      - key: EMAIL_PROVIDER
+        value: smtp
+      - key: SMTP_SERVER
+        value: smtp.gmail.com
+      - key: SMTP_PORT
+        value: "587"
+      # No broker yet. Flip to true and add MQTT_* once hardware is deployed.
+      - key: MQTT_ENABLED
+        value: "false"

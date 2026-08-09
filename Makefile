@@ -31,5 +31,6 @@ install-frontend:
 	cd frontend && npm install
 
 setup: install-backend install-frontend
-	cp backend/.env.example backend/.env
+	cp -n backend/.env.example backend/.env || true
+	cp -n frontend/.env.example frontend/.env.local || true
 	@echo "✅ Setup complete! Edit backend/.env with your credentials, then run 'make dev'"

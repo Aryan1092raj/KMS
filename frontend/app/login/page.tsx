@@ -35,9 +35,16 @@ export default function LoginPage() {
     }
   }
 
+  // Off unless NEXT_PUBLIC_DEMO_MODE is set at build time, so a production
+  // bundle carries no seed credentials at all.
+  const demoEmail = process.env.NEXT_PUBLIC_DEMO_EMAIL;
+  const demoPassword = process.env.NEXT_PUBLIC_DEMO_PASSWORD;
+  const demoEnabled =
+    process.env.NEXT_PUBLIC_DEMO_MODE === "true" && !!demoEmail && !!demoPassword;
+
   function handleDemoFill() {
-    setEmail("demo@iitmandi.ac.in");
-    setPassword("demo123456");
+    setEmail(demoEmail!);
+    setPassword(demoPassword!);
   }
 
   return (
@@ -105,16 +112,18 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <div style={{ marginTop: "1rem" }}>
-            <button
-              type="button"
-              onClick={handleDemoFill}
-              className="btn btn-ghost btn-sm btn-full"
-              style={{ fontSize: "0.8rem" }}
-            >
-              Fill Demo Account Credentials
-            </button>
-          </div>
+          {demoEnabled && (
+            <div style={{ marginTop: "1rem" }}>
+              <button
+                type="button"
+                onClick={handleDemoFill}
+                className="btn btn-ghost btn-sm btn-full"
+                style={{ fontSize: "0.8rem" }}
+              >
+                Fill Demo Account Credentials
+              </button>
+            </div>
+          )}
 
           <div style={{ marginTop: "1.5rem", textAlign: "center" }}>
             <Link href="/keys" style={{ fontSize: "0.8rem", color: "var(--c-text-dim)" }}>

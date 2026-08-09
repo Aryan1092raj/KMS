@@ -6,10 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
-    "cf:build": "opennextjs-cloudflare build",
-    "cf:preview": "opennextjs-cloudflare build && wrangler dev",
-    "cf:deploy": "opennextjs-cloudflare build && wrangler deploy"
+    "lint": "next lint"
   },
   "dependencies": {
     "animejs": "^4.5.0",
@@ -21,13 +18,11 @@
     "recharts": "^2.12.7"
   },
   "devDependencies": {
-    "@opennextjs/cloudflare": "1.15.0",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "eslint": "^8",
     "eslint-config-next": "14.2.35",
-    "typescript": "^5",
-    "wrangler": "^4.59.2"
+    "typescript": "^5"
   }
 }
