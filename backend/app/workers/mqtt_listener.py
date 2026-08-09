@@ -6,13 +6,12 @@ import json
 import uuid
 from datetime import datetime, timezone
 
-import aiomqtt
-
 from app.core.config import get_settings
 from app.core.database import AsyncSessionLocal
 from app.models.access_log import AccessLog
 from app.models.device import Device
 from app.models.override_log import OverrideLog, OverrideTrigger
+from app.services.mqtt_service import mqtt_client
 from app.services.proximity_service import ProximityService
 
 settings = get_settings()
@@ -22,12 +21,7 @@ async def run_mqtt_listener() -> None:
     """Main MQTT listener loop — reconnects on failure."""
     while True:
         try:
-            async with aiomqtt.Client(
-                hostname=settings.mqtt_host,
-                port=settings.mqtt_port,
-                username=settings.mqtt_username or None,
-                password=settings.mqtt_password or None,
-            ) as client:
+            async with mqtt_client() as client:
                 # Subscribe to all device topics
                 await client.subscribe("device/+/access/event")
                 await client.subscribe("device/+/access/proximity_code")

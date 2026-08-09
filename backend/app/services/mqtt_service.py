@@ -9,18 +9,33 @@ from app.core.security import consume_nonce, generate_nonce
 settings = get_settings()
 
 
+def mqtt_client():
+    """
+    Build a client from settings.
+
+    Both the publisher here and the listener in app.workers.mqtt_listener go
+    through this, so TLS can't end up enabled on one side and forgotten on the
+    other — which is a connection that fails only on the command path.
+    """
+    import aiomqtt
+
+    return aiomqtt.Client(
+        hostname=settings.mqtt_host,
+        port=settings.mqtt_port,
+        username=settings.mqtt_username or None,
+        password=settings.mqtt_password or None,
+        # TLSParameters() with every field None means "use the system CA bundle",
+        # which is what HiveMQ Cloud's Let's Encrypt chain verifies against.
+        # Passing nothing leaves the socket plaintext and 8883 just drops it.
+        tls_params=aiomqtt.TLSParameters() if settings.mqtt_tls else None,
+    )
+
+
 class MQTTService:
     """Thin wrapper around aiomqtt publish operations."""
 
     async def _publish(self, topic: str, payload: dict) -> None:
-        import aiomqtt
-
-        async with aiomqtt.Client(
-            hostname=settings.mqtt_host,
-            port=settings.mqtt_port,
-            username=settings.mqtt_username or None,
-            password=settings.mqtt_password or None,
-        ) as client:
+        async with mqtt_client() as client:
             await client.publish(topic, payload=json.dumps(payload), qos=1)
 
     async def unlock_door(self, device_id: uuid.UUID, session_id: str) -> str:
