@@ -34,7 +34,7 @@ class TestTOTP:
         secret = generate_totp_secret()
         uri = get_totp_uri(secret, "test@iitmandi.ac.in")
         assert uri.startswith("otpauth://totp/")
-        assert "SKSS" in uri
+        assert "SNTC" in uri
         assert "test%40iitmandi.ac.in" in uri or "test@iitmandi.ac.in" in uri
 
 

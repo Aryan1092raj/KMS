@@ -28,7 +28,7 @@ class NotificationService:
         """FR-8 — fires on successful retrieve."""
         msg = EmailMessage(
             to=user.email,
-            subject=f"[SKSS] Key Retrieved: {room.name}",
+            subject=f"[SNTC] Key Retrieved: {room.name}",
             html_body=retrieval_confirmation_html(user.name, room.name, due_at),
         )
         await self.provider.send(msg)
@@ -38,7 +38,7 @@ class NotificationService:
         """Fires ~30 min before due."""
         msg = EmailMessage(
             to=user.email,
-            subject=f"[SKSS] Reminder: Return Key for {room.name}",
+            subject=f"[SNTC] Reminder: Return Key for {room.name}",
             html_body=return_reminder_html(user.name, room.name, due_at),
         )
         await self.provider.send(msg)
@@ -48,7 +48,7 @@ class NotificationService:
         """Fires at due time (failure 1)."""
         msg = EmailMessage(
             to=user.email,
-            subject=f"[SKSS] OVERDUE: Key for {room.name} not returned",
+            subject=f"[SNTC] OVERDUE: Key for {room.name} not returned",
             html_body=overdue_warning_html(user.name, room.name),
         )
         await self.provider.send(msg)
@@ -60,7 +60,7 @@ class NotificationService:
         """Fires T+2h past due (failure 2)."""
         msg = EmailMessage(
             to=coordinator.email,
-            subject=f"[SKSS] Escalation: Key for {room.name} still not returned",
+            subject=f"[SNTC] Escalation: Key for {room.name} still not returned",
             html_body=coordinator_escalation_html(
                 coordinator.name, member.name, member.email, room.name, retrieved_at
             ),
@@ -72,7 +72,7 @@ class NotificationService:
         """Immediate alert on outer-box tamper event."""
         msg = EmailMessage(
             to=admin.email,
-            subject=f"[SKSS] ALERT: Physical Override on {device_name}",
+            subject=f"[SNTC] ALERT: Physical Override on {device_name}",
             html_body=tamper_alert_html(device_name, ts),
         )
         await self.provider.send(msg)

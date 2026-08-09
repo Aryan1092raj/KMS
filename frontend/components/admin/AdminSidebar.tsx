@@ -21,7 +21,7 @@ export default function AdminSidebar() {
     <aside className="sidebar">
       <div className="sidebar-logo">
         <div className="sidebar-logo-text">
-          <span>SKSS</span> Admin
+          <span>SNTC</span> Admin
         </div>
       </div>
 

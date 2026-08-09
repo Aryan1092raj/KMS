@@ -18,7 +18,7 @@ def retrieval_confirmation_html(user_name: str, room_name: str, due_at: datetime
     <div style="background:#f0f9ff;border-left:4px solid #0ea5e9;padding:12px;margin:16px 0;">
       <strong>Return by:</strong> {due_str}
     </div>
-    <p>Please return the key within 6 hours. You can extend your possession window from the SKSS web app.</p>
+    <p>Please return the key within 6 hours. You can extend your possession window from the SNTC web app.</p>
     <p>If you need to return early, please log in and select "Return Key".</p>
     <hr style="margin:20px 0;">
     <small style="color:#666;">IIT Mandi SAC — Smart Key Storage System</small>
@@ -66,7 +66,7 @@ def overdue_warning_html(user_name: str, room_name: str) -> str:
   <div style="padding:20px;border:1px solid #eee;border-radius:0 0 8px 8px;">
     <p>Hi <strong>{user_name}</strong>,</p>
     <p>The key for <strong>{room_name}</strong> is now <strong>overdue</strong>. Please return it immediately.</p>
-    <p>If you need more time, please extend your possession window from the SKSS app.</p>
+    <p>If you need more time, please extend your possession window from the SNTC app.</p>
     <p>Failure to return the key may result in your access being suspended.</p>
     <hr style="margin:20px 0;">
     <small style="color:#666;">IIT Mandi SAC — Smart Key Storage System</small>

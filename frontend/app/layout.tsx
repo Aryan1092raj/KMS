@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "SKSS — Smart Key Storage System | IIT Mandi SAC",
+  title: "SNTC — Smart Key Storage System | IIT Mandi SAC",
   description:
     "Self-service key retrieval system for IIT Mandi Student Activity Center. Secure, audited, proximity-gated access.",
   keywords: ["key management", "IIT Mandi", "SAC", "access control"],
