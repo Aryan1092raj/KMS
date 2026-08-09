@@ -4,6 +4,10 @@
 **Status:** Approved for planning
 **Scope:** Backend → Render, Frontend → Vercel, Postgres → Neon, Redis → Upstash. Remove hardcoded values, close the `/ws/keys` auth hole, fix `.gitignore`, ship to GitHub.
 
+`<app>.vercel.app` and `<api>.onrender.com` below are placeholders for hostnames
+that do not exist until the services are provisioned. They are set as
+environment variables at deploy time and are never committed.
+
 ---
 
 ## 1. Target topology
@@ -66,6 +70,10 @@ WS /ws/keys?ticket=<nonce>
   → valid       → accept, subscribe to live_status_channel()
 ```
 
+`GETDEL` needs Redis 6.2+; Upstash is 6.2+ compatible, so this is available.
+Verify during step 6 of the checks below — if it is not, fall back to a
+`GET` + `DELETE` pipeline in a `MULTI`.
+
 Properties:
 
 - 30-second TTL, single-use — a leaked ticket in a URL or proxy log is dead
@@ -119,9 +127,11 @@ login attempt.
 
 ### Cookie flags
 
-`secure=True` is already hardcoded and correct for both deploy targets (Vercel
-and Render are HTTPS-only). Introduce `cookie_secure: bool = True` so local
-HTTP development does not need a code edit. Default stays `True`.
+`secure=True` at `backend/app/api/auth.py:41` is already correct and needs no
+change. Both deploy targets are HTTPS-only, and browsers treat `http://localhost`
+as a secure context, so a `Secure` cookie is still accepted in local development.
+No `cookie_secure` setting is added — it would be config for a value that never
+varies.
 
 ---
 
