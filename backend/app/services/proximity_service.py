@@ -20,14 +20,16 @@ class ProximityService:
         if not stored_device_id:
             raise ValueError("Proximity code invalid or expired.")
 
-        if uuid.UUID(stored_device_id) != req.device_id:
+        # The code itself identifies the device. device_id is only cross-checked
+        # when the caller supplied one (captive-portal redirect carries it).
+        if req.device_id and uuid.UUID(stored_device_id) != req.device_id:
             raise ValueError("Proximity code does not match the given device.")
 
         # Consume the code (single-use)
         await redis.delete(key)
 
         # Set the proximity-verified flag on this session
-        await set_proximity_flag(session_id, str(req.device_id))
+        await set_proximity_flag(session_id, stored_device_id)
 
         return ProximityVerifyResponse(
             proximity_verified=True,

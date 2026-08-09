@@ -94,6 +94,25 @@ class AuthService:
         await self.db.commit()
         return TOTPSetupResponse(totp_uri=uri, secret=secret)
 
+    async def setup_totp_with_temp_token(self, temp_token: str) -> TOTPSetupResponse:
+        """
+        First-time enrollment, before any session exists.
+
+        Authorised by the temp_token from login (which required a correct
+        password). Enrollment is refused once a secret exists, so a leaked
+        token cannot re-enroll an active account — admins use
+        force_reenroll_totp for legitimate resets.
+        """
+        user_id = await self._peek_temp_token(temp_token)
+        if not user_id:
+            raise ValueError("Invalid or expired token.")
+        user = await self._get_user_by_id(uuid.UUID(user_id))
+        if not user or not user.is_active:
+            raise ValueError("User not found or deactivated.")
+        if user.totp_secret:
+            raise PermissionError("TOTP already enrolled. Ask an admin to re-enroll you.")
+        return await self.setup_totp(user.id)
+
     async def force_reenroll_totp(self, user_id: uuid.UUID) -> TOTPSetupResponse:
         """Admin-initiated TOTP re-enrollment."""
         user = await self._get_user_by_id(user_id)
@@ -133,6 +152,11 @@ class AuthService:
         if user_id:
             await redis.delete(key)
         return user_id
+
+    async def _peek_temp_token(self, token: str) -> str | None:
+        """Read without consuming — the TOTP verify step still needs this token."""
+        redis = get_redis()
+        return await redis.get(f"temp:{token}")
 
     async def _log_event(
         self, user_id: uuid.UUID | None, device_id: uuid.UUID | None, event_type: str, metadata: dict

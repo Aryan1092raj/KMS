@@ -1,15 +1,12 @@
 """Auth router — login, TOTP, setup, logout."""
-from typing import Annotated
-
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user
 from app.core.database import get_db
-from app.models.user import User
 from app.schemas import (
     LoginRequest,
     SessionResponse,
+    TOTPSetupRequest,
     TOTPSetupResponse,
     TOTPVerifyRequest,
 )
@@ -50,11 +47,22 @@ async def verify_totp(
 
 @router.post("/totp/setup", response_model=TOTPSetupResponse)
 async def setup_totp(
-    user: Annotated[User, Depends(get_current_user)],
+    req: TOTPSetupRequest,
     db: AsyncSession = Depends(get_db),
 ) -> TOTPSetupResponse:
-    """Enroll TOTP — returns QR URI and secret (shown once)."""
-    return await AuthService(db).setup_totp(user.id)
+    """
+    Enroll TOTP — returns QR URI and secret (shown once).
+
+    Authorised by the temp_token from /auth/login, not by a session cookie:
+    this runs before the user has any session, since a session is only issued
+    after TOTP verification.
+    """
+    try:
+        return await AuthService(db).setup_totp_with_temp_token(req.temp_token)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
+    except PermissionError as e:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)

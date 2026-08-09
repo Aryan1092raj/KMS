@@ -25,6 +25,10 @@ class TOTPVerifyRequest(BaseModel):
     code: str
 
 
+class TOTPSetupRequest(BaseModel):
+    temp_token: str   # authorises enrollment before a session exists
+
+
 class TOTPSetupResponse(BaseModel):
     totp_uri: str
     secret: str   # shown once, for manual entry
@@ -43,8 +47,10 @@ class LogoutRequest(BaseModel):
 # ── Proximity ─────────────────────────────────────────────────────────────────
 
 class ProximityVerifyRequest(BaseModel):
-    device_id: uuid.UUID
     code: str
+    # Optional: the code alone already resolves to a device in Redis. Only sent
+    # when a captive-portal redirect supplied it in the URL.
+    device_id: uuid.UUID | None = None
 
 
 class ProximityVerifyResponse(BaseModel):
