@@ -17,6 +17,9 @@ export default function TOTPVerifyPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    // The 6th digit auto-submits, so a Verify click lands a second request.
+    // temp_token is single-use, so that one always fails as "expired".
+    if (loading) return;
     setError("");
     const temp_token = sessionStorage.getItem("temp_token");
     if (!temp_token) {
@@ -25,11 +28,19 @@ export default function TOTPVerifyPage() {
     }
     setLoading(true);
     try {
-      await auth.verifyTOTP(temp_token, code.trim());
+      const res = await auth.verifyTOTP(temp_token, code.trim());
       sessionStorage.removeItem("temp_token");
-      router.push("/keys");
+      router.push(res.role === "admin" ? "/admin" : "/keys");
     } catch (err: any) {
-      setError(err.detail || "Invalid code. Try again.");
+      const detail = err.detail || "Invalid code. Try again.";
+      // A consumed/expired token can never succeed here — bounce to login
+      // rather than leaving the user retrying a dead token forever.
+      if (typeof detail === "string" && detail.includes("token")) {
+        sessionStorage.removeItem("temp_token");
+        router.push("/login");
+        return;
+      }
+      setError(detail);
       setCode("");
       inputRef.current?.focus();
     } finally {

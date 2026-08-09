@@ -13,5 +13,8 @@ def get_email_provider() -> EmailProvider:
     if provider == "smtp":
         from app.email.smtp_provider import SMTPProvider
         return SMTPProvider()
+    if provider == "console":
+        from app.email.console_provider import ConsoleProvider
+        return ConsoleProvider()
     # Future: elif provider == "sendgrid": ...
     raise ValueError(f"Unknown EMAIL_PROVIDER: {provider!r}")
