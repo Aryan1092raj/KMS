@@ -25,6 +25,8 @@ export default function LoginPage() {
       } else if (result.requires_totp) {
         sessionStorage.setItem("temp_token", result.temp_token);
         router.push("/login/totp");
+      } else {
+        setError("Unexpected response from the server. Please try again.");
       }
     } catch (err: any) {
       setError(err.detail || "Invalid email or password.");

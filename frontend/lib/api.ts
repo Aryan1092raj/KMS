@@ -1,5 +1,5 @@
 /**
- * SKSS API client — typed wrapper around all backend endpoints.
+ * SNTC API client — typed wrapper around all backend endpoints.
  * Uses Next.js rewrites to proxy /api/* → FastAPI backend.
  */
 
@@ -37,8 +37,11 @@ export const auth = {
       { method: "POST", body: JSON.stringify({ temp_token, code }) }
     ),
 
-  setupTOTP: () =>
-    request<{ totp_uri: string; secret: string }>("/auth/totp/setup", { method: "POST" }),
+  setupTOTP: (temp_token: string) =>
+    request<{ totp_uri: string; secret: string }>("/auth/totp/setup", {
+      method: "POST",
+      body: JSON.stringify({ temp_token }),
+    }),
 
   logout: () => request<void>("/auth/logout", { method: "POST" }),
 };
@@ -46,10 +49,10 @@ export const auth = {
 // ── Proximity ─────────────────────────────────────────────────────────────────
 
 export const proximity = {
-  verify: (device_id: string, code: string) =>
+  verify: (code: string, device_id?: string) =>
     request<{ proximity_verified: boolean; expires_in_seconds: number }>(
       "/proximity/verify",
-      { method: "POST", body: JSON.stringify({ device_id, code }) }
+      { method: "POST", body: JSON.stringify({ code, device_id }) }
     ),
 };
 

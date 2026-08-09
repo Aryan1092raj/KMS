@@ -1,21 +1,28 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { auth } from "@/lib/api";
 import { QRCodeSVG } from "qrcode.react";
 
 export default function TOTPSetupPage() {
+  const router = useRouter();
   const [data, setData] = useState<{ totp_uri: string; secret: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    auth.setupTOTP()
+    const temp_token = sessionStorage.getItem("temp_token");
+    if (!temp_token) {
+      router.replace("/login");
+      return;
+    }
+    auth.setupTOTP(temp_token)
       .then(setData)
-      .catch(() => setError("Failed to generate TOTP. Please re-authenticate."))
+      .catch((err: any) => setError(err.detail || "Failed to generate TOTP. Please re-authenticate."))
       .finally(() => setLoading(false));
-  }, []);
+  }, [router]);
 
   function copySecret() {
     if (data?.secret) {

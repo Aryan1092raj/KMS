@@ -6,7 +6,9 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Protected paths
-  const isProtectedPath = pathname.startsWith("/keys") || pathname.startsWith("/admin") || pathname.startsWith("/totp/setup");
+  // /totp/setup is deliberately absent: it runs before a session exists, and
+  // authorises itself with the temp_token issued by /auth/login.
+  const isProtectedPath = pathname.startsWith("/keys") || pathname.startsWith("/admin");
   const isGuestOnlyPath = pathname === "/login" || pathname === "/login/totp";
 
   // Redirect to login if accessing protected path without session
