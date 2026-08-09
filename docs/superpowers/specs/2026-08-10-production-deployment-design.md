@@ -257,7 +257,8 @@ Success criteria, in order:
    `close(1008)`.
 7. `git status` clean, `docs/` and `backend/tests/` tracked, no `.env` staged.
 
-Push to a feature branch and open a PR. Not a direct push to `main`.
+Commit straight to `main` and push — no feature branch, no PR (decided during
+implementation; a two-person team reviewing its own PR buys nothing here).
 
 ---
 
