@@ -1,4 +1,4 @@
-# Smart Key Storage System (SKSS)
+# Smart Key Storage System (SNTC)
 
 **IIT Mandi SNTC — Self-service key management with 2FA, proximity gating, and full audit trail.**
 
@@ -120,12 +120,23 @@ frontend/
 
 ## Authentication Flow
 
-1. User connects to enclosure WiFi → captive portal redirects to `/connect?device_id=X&code=Y`
-2. `/connect` calls `POST /proximity/verify` → sets 5-minute proximity flag
-3. User logs in: `POST /auth/login` → temp token
-4. User enters TOTP: `POST /auth/totp/verify` → session cookie
-5. `POST /sessions/start` → unlocks door (proximity-gated)
-6. `POST /keys/{slot}/retrieve` → dispenses key (proximity-gated + permission-checked)
+Proximity verification needs a session, so login comes first. The code proves
+physical presence because it is only obtainable inside the enclosure's radio range.
+
+1. User joins the enclosure WiFi → captive portal shows a short-lived code
+2. User rejoins their normal network (the enclosure AP has no internet route)
+3. `POST /auth/login` → temp token
+4. `POST /auth/totp/setup` (first time only, authorised by the temp token) → QR + secret
+5. `POST /auth/totp/verify` → session cookie
+6. `/connect` calls `POST /proximity/verify` with the code → sets 5-minute proximity flag
+7. `POST /sessions/start` → unlocks door (proximity-gated)
+8. `POST /keys/{slot}/retrieve` → dispenses key (proximity-gated + permission-checked)
+
+An already-signed-in user on the enclosure WiFi can be redirected straight to
+`/connect?device_id=X&code=Y`, which skips the manual code entry at step 6.
+
+Step-by-step walkthrough, Google Authenticator enrollment, and the ESP32 firmware
+contract: [`docs/USER_GUIDE.md`](docs/USER_GUIDE.md).
 
 ## Notification Schedule
 

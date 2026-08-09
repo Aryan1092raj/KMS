@@ -1,4 +1,4 @@
-.PHONY: dev backend frontend test migrate
+.PHONY: dev backend frontend test migrate seed
 
 dev:
 	docker-compose up
@@ -17,6 +17,9 @@ test-unit:
 
 migrate:
 	cd backend && alembic upgrade head
+
+seed:
+	cd backend && .venv/bin/python seed.py
 
 migrate-new:
 	cd backend && alembic revision --autogenerate -m "$(MSG)"
