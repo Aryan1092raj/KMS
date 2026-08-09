@@ -25,17 +25,15 @@ out/
 .open-next/
 .wrangler/
 
-# docs / agent tooling
-docs/
+# agent tooling
 *.pdf
 .agents/
 .claude/
 .playwright-mcp/
 skills-lock.json
 
-# tests (kept local, not tracked)
-backend/tests/
-backend/pytest.ini
+# vercel
+.vercel/
 
 # build / os
 dist/
