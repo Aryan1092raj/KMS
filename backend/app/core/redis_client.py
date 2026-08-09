@@ -49,5 +49,9 @@ def totp_attempt_key(user_id: str) -> str:
     return f"rate:totp:{user_id}"
 
 
+def ws_ticket_key(ticket: str) -> str:
+    return f"ws:ticket:{ticket}"
+
+
 def live_status_channel() -> str:
     return "skss:key_status"

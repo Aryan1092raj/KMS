@@ -14,6 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api import admin, auth, keys, proximity, sessions
 from app.core.config import get_settings
 from app.core.redis_client import close_redis, get_redis, live_status_channel
+from app.core.security import redeem_ws_ticket
 from app.workers.mqtt_listener import run_mqtt_listener
 from app.workers.scheduler import start_scheduler, stop_scheduler
 
@@ -50,8 +51,10 @@ app.include_router(admin.router)
 async def startup() -> None:
     # Start APScheduler for notification jobs
     start_scheduler()
-    # Start MQTT listener as background task
-    asyncio.create_task(run_mqtt_listener())
+    if settings.mqtt_enabled:
+        asyncio.create_task(run_mqtt_listener())
+    else:
+        print("[MQTT] MQTT_ENABLED is false — listener not started.")
 
 
 @app.on_event("shutdown")
@@ -66,8 +69,19 @@ async def health() -> dict:
 
 
 @app.websocket("/ws/keys")
-async def websocket_keys(websocket: WebSocket):
-    """WebSocket endpoint for real-time key status updates."""
+async def websocket_keys(websocket: WebSocket, ticket: str | None = None):
+    """WebSocket endpoint for real-time key status updates.
+
+    Authenticated by a single-use ticket from POST /auth/ws/ticket, not by the
+    session cookie: this socket is opened directly against the backend host,
+    while the cookie belongs to the frontend origin and is HttpOnly.
+    """
+    if not ticket or not await redeem_ws_ticket(ticket):
+        # 1008 = policy violation. Same code for missing, unknown and expired so
+        # a caller cannot probe which tickets once existed.
+        await websocket.close(code=1008)
+        return
+
     await websocket.accept()
     redis = get_redis()
     pubsub = redis.pubsub()

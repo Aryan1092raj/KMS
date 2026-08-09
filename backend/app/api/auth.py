@@ -1,8 +1,12 @@
-"""Auth router — login, TOTP, setup, logout."""
+"""Auth router — login, TOTP, setup, logout, websocket ticket."""
+from typing import Annotated
+
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import get_settings
 from app.core.database import get_db
+from app.core.security import get_session, issue_ws_ticket
 from app.schemas import (
     LoginRequest,
     SessionResponse,
@@ -13,6 +17,7 @@ from app.schemas import (
 from app.services.auth_service import AuthService
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+settings = get_settings()
 
 
 @router.post("/login")
@@ -38,7 +43,9 @@ async def verify_totp(
             httponly=True,
             samesite="lax",
             secure=True,
-            max_age=3600,
+            # Tied to the Redis session TTL — a cookie that outlives the session
+            # only produces confusing 401s after the fact.
+            max_age=settings.session_ttl_seconds,
         )
         return result
     except (ValueError, PermissionError) as e:
@@ -63,6 +70,23 @@ async def setup_totp(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
     except PermissionError as e:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
+
+
+@router.post("/ws/ticket")
+async def issue_websocket_ticket(
+    session_id: Annotated[str | None, Cookie()] = None,
+) -> dict:
+    """Mint a short-lived ticket for the /ws/keys handshake.
+
+    Authorised by the same session cookie as any other request, because this
+    call goes through the frontend's /api proxy. The WebSocket itself cannot —
+    see the note in app/core/security.py.
+    """
+    if not session_id:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+    if not await get_session(session_id):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Session expired")
+    return {"ticket": await issue_ws_ticket(session_id)}
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)

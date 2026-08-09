@@ -19,6 +19,7 @@ from app.core.redis_client import (
     proximity_flag_key,
     session_key,
     totp_attempt_key,
+    ws_ticket_key,
 )
 
 settings = get_settings()
@@ -50,6 +51,12 @@ def get_totp_uri(secret: str, user_email: str) -> str:
 
 def verify_totp(secret: str, code: str) -> bool:
     """Verify TOTP code with ±1 step (RFC 6238 §6.2)."""
+    # Demo escape hatch: lets a presenter in without an authenticator app.
+    # Gated on an env var that is unset everywhere except a local demo box —
+    # if this is ever true in production, TOTP is effectively off.
+    bypass = get_settings().totp_demo_bypass_code
+    if bypass and code == bypass:
+        return True
     totp = pyotp.TOTP(secret)
     return totp.verify(code, valid_window=1)
 
@@ -156,3 +163,24 @@ async def consume_nonce(nonce: str, ttl: int = 300) -> bool:
     key = f"nonce:{nonce}"
     set_ok = await redis.set(key, "1", ex=ttl, nx=True)
     return bool(set_ok)
+
+
+# ── WebSocket tickets ─────────────────────────────────────────────────────────
+# /ws/keys is opened straight against the backend host, bypassing the frontend's
+# /api proxy, so the session cookie — which belongs to the frontend origin and is
+# HttpOnly — can never reach it. A ticket carries the session across that gap:
+# minted over the authenticated proxy, redeemed once, expires in seconds.
+
+async def issue_ws_ticket(session_id: str) -> str:
+    """Mint a single-use ticket that maps to an existing session."""
+    redis = get_redis()
+    ticket = generate_nonce()
+    await redis.setex(ws_ticket_key(ticket), settings.ws_ticket_ttl_seconds, session_id)
+    return ticket
+
+
+async def redeem_ws_ticket(ticket: str) -> str | None:
+    """Return the session_id for a ticket and burn it. None if unknown/expired."""
+    redis = get_redis()
+    # GETDEL is atomic, so two concurrent redemptions cannot both win.
+    return await redis.getdel(ws_ticket_key(ticket))

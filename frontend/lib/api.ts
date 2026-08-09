@@ -44,6 +44,10 @@ export const auth = {
     }),
 
   logout: () => request<void>("/auth/logout", { method: "POST" }),
+
+  // Single-use ticket for the /ws/keys handshake. Goes through the same-origin
+  // /api proxy so the session cookie applies; the websocket itself can't use it.
+  wsTicket: () => request<{ ticket: string }>("/auth/ws/ticket", { method: "POST" }),
 };
 
 // ── Proximity ─────────────────────────────────────────────────────────────────

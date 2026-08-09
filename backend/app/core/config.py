@@ -1,6 +1,6 @@
 """Application configuration — loaded from environment / .env file."""
 from functools import lru_cache
-from pydantic import Field
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -25,6 +25,10 @@ class Settings(BaseSettings):
     mqtt_username: str = ""
     mqtt_password: str = ""
     mqtt_tls: bool = False
+    # Off by default so a web-only deploy doesn't start a listener that can never
+    # connect — it would retry every 5s forever and bury real errors in the log.
+    # Flip to true once a broker exists; no code change needed.
+    mqtt_enabled: bool = False
 
     # ── Email ────────────────────────────────────────────────────
     email_provider: str = "smtp"  # smtp | sendgrid | ses | resend
@@ -42,6 +46,10 @@ class Settings(BaseSettings):
     totp_max_attempts: int = 5
     totp_lockout_seconds: int = 300          # 5 minutes
 
+    # Local demo only. Any non-empty value is accepted as a valid TOTP code for
+    # every user, so leave it unset in any deployed environment.
+    totp_demo_bypass_code: str = ""
+
     # ── Notification schedule ─────────────────────────────────────
     reminder_before_due_minutes: int = 30
     escalation_after_due_hours: int = 2
@@ -49,7 +57,28 @@ class Settings(BaseSettings):
     # ── Possession window ─────────────────────────────────────────
     default_possession_hours: int = 6
 
+    # ── WebSocket ticket ──────────────────────────────────────────
+    # A /ws/keys ticket is redeemed within a page load or not at all.
+    ws_ticket_ttl_seconds: int = 30
+
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+
+    @model_validator(mode="after")
+    def _reject_totp_bypass_outside_debug(self) -> "Settings":
+        """Refuse to boot with the TOTP bypass armed in a non-debug environment.
+
+        verify_totp() accepts this value as a valid code for every user, so a
+        stray env var would disable the second factor for the whole system with
+        nothing in the logs to show it. Fail loudly at startup instead of
+        silently at the first login.
+        """
+        if self.totp_demo_bypass_code and not self.debug:
+            raise ValueError(
+                "TOTP_DEMO_BYPASS_CODE is set while DEBUG is false. This disables "
+                "two-factor authentication for every user. Unset it, or set DEBUG=true "
+                "if this really is a local demo."
+            )
+        return self
 
 
 @lru_cache

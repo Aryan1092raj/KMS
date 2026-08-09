@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { keys, type KeySlot } from "@/lib/api";
+import { keys, auth, type KeySlot } from "@/lib/api";
 import { formatDistanceToNow, format, isPast } from "date-fns";
 import Navbar from "@/components/Navbar";
 
@@ -37,19 +37,35 @@ export default function KeysPage() {
 
     // The browser opens /ws/keys against the backend directly — the /api rewrite
     // only covers HTTP and does not upgrade websockets. So this needs the public
-    // backend origin, not the frontend's. Same-host fallback is dev-only, where
-    // the two are behind one proxy; in production NEXT_PUBLIC_API_URL is set at
-    // build time and the fallback would point at the Worker, which has no /ws.
-    const apiBase = process.env.NEXT_PUBLIC_API_URL || "";
-    const wsUrl = apiBase
-      ? apiBase.replace(/^http/, "ws") + "/ws/keys"
-      : `${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.host}/ws/keys`;
-    const ws = new WebSocket(wsUrl);
-    ws.onmessage = () => fetchSlots();
-    // Live updates are a nicety here; the page already polls on every action and
-    // exposes a Refresh button, so a dropped socket degrades rather than breaks.
-    ws.onerror = () => {};
-    return () => ws.close();
+    // backend origin, not the frontend's, and the session cookie cannot travel
+    // with it: hence the ticket, fetched over /api where the cookie does apply.
+    let ws: WebSocket | undefined;
+    let closed = false;
+
+    (async () => {
+      let ticket: string;
+      try {
+        ticket = (await auth.wsTicket()).ticket;
+      } catch {
+        return; // No live updates; the page still polls on every action.
+      }
+      if (closed) return;
+
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || "";
+      const wsOrigin = apiBase
+        ? apiBase.replace(/^http/, "ws")
+        : `${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.host}`;
+      ws = new WebSocket(`${wsOrigin}/ws/keys?ticket=${encodeURIComponent(ticket)}`);
+      ws.onmessage = () => fetchSlots();
+      // Live updates are a nicety here; the page already polls on every action and
+      // exposes a Refresh button, so a dropped socket degrades rather than breaks.
+      ws.onerror = () => {};
+    })();
+
+    return () => {
+      closed = true;
+      ws?.close();
+    };
   }, [fetchSlots]);
 
   async function handleRetrieve(slotId: string) {
