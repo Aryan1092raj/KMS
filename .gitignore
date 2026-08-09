@@ -1,9 +1,35 @@
+# env
+.env
+.env.*
+!.env.example
 backend/.env
 frontend/.env.local
-docs/
+
+# python
+__pycache__/
+*.py[cod]
 .venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+
+# node / next
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+
+# docs / agent tooling
+docs/
 .agents/
 .claude/
-.pytest_cache/  
-frontend/node_modules/
-frontend/.next/
+.playwright-mcp/
+skills-lock.json
+
+# build / os
+dist/
+build/
+.DS_Store
+*.log
