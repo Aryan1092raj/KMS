@@ -35,12 +35,19 @@ export default function KeysPage() {
     setProximityVerified(pv);
     fetchSlots();
 
+    // The browser opens /ws/keys against the backend directly — the /api rewrite
+    // only covers HTTP and does not upgrade websockets. So this needs the public
+    // backend origin, not the frontend's. Same-host fallback is dev-only, where
+    // the two are behind one proxy; in production NEXT_PUBLIC_API_URL is set at
+    // build time and the fallback would point at the Worker, which has no /ws.
     const apiBase = process.env.NEXT_PUBLIC_API_URL || "";
     const wsUrl = apiBase
       ? apiBase.replace(/^http/, "ws") + "/ws/keys"
       : `${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.host}/ws/keys`;
     const ws = new WebSocket(wsUrl);
     ws.onmessage = () => fetchSlots();
+    // Live updates are a nicety here; the page already polls on every action and
+    // exposes a Refresh button, so a dropped socket degrades rather than breaks.
     ws.onerror = () => {};
     return () => ws.close();
   }, [fetchSlots]);
