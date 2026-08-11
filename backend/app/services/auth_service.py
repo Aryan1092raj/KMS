@@ -87,7 +87,7 @@ class AuthService:
             raise ValueError("User not found.")
         secret = security.generate_totp_secret()
         uri = security.get_totp_uri(secret, user.email)
-        # Save secret to user (in real deploy, encrypt before storing)
+        # The column type encrypts on write (app.core.crypto.EncryptedSecret).
         user.totp_secret = secret
         user.totp_enrolled_at = datetime.now(timezone.utc)
         self.db.add(user)

@@ -50,6 +50,11 @@ class Settings(BaseSettings):
     # every user, so leave it unset in any deployed environment.
     totp_demo_bypass_code: str = ""
 
+    # Fernet key encrypting users.totp_secret at rest. Generate with:
+    #   python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+    # Losing it means every enrolled user has to re-enroll their authenticator.
+    totp_encryption_key: str = ""
+
     # ── Notification schedule ─────────────────────────────────────
     reminder_before_due_minutes: int = 30
     escalation_after_due_hours: int = 2
@@ -78,6 +83,30 @@ class Settings(BaseSettings):
                 "two-factor authentication for every user. Unset it, or set DEBUG=true "
                 "if this really is a local demo."
             )
+        return self
+
+    @model_validator(mode="after")
+    def _require_usable_totp_encryption_key(self) -> "Settings":
+        """Refuse to boot without a valid key for the TOTP secret column.
+
+        Defaulting to plaintext would be silent: enrollment would keep working
+        and the secrets would sit readable in every database dump. Fail here
+        instead, where the message can say what to do about it.
+        """
+        hint = (
+            'Generate one with: python -c "from cryptography.fernet import Fernet; '
+            'print(Fernet.generate_key().decode())"'
+        )
+        if not self.totp_encryption_key:
+            raise ValueError(f"TOTP_ENCRYPTION_KEY is not set. {hint}")
+        from cryptography.fernet import Fernet
+
+        try:
+            Fernet(self.totp_encryption_key.encode())
+        except Exception as exc:
+            raise ValueError(
+                f"TOTP_ENCRYPTION_KEY is not a valid Fernet key ({exc}). {hint}"
+            ) from exc
         return self
 
 

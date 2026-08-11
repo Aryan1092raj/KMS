@@ -225,3 +225,23 @@ class TestNonceReplayProtection:
 
             result = await consume_nonce("test-nonce-123")
             assert result is False
+
+
+# ── TOTP-at-rest Encryption Tests ─────────────────────────────────────────────
+
+class TestEncryptedSecret:
+    def test_roundtrip_encrypts_and_decrypts(self):
+        from app.core.crypto import EncryptedSecret
+        from app.core.security import generate_totp_secret
+
+        secret = generate_totp_secret()
+        td = EncryptedSecret()
+
+        stored = td.process_bind_param(secret, None)
+        assert stored != secret, "column must not store plaintext"
+        assert td.process_result_value(stored, None) == secret
+
+    def test_legacy_plaintext_passes_through(self):
+        from app.core.crypto import decrypt_secret
+
+        assert decrypt_secret("ABCD2345") == "ABCD2345"

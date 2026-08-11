@@ -9,6 +9,8 @@ pydantic-settings==2.2.1
 passlib[bcrypt]==1.7.4
 bcrypt==4.0.1
 pyotp==2.9.0
+# Fernet, for encrypting users.totp_secret at rest.
+cryptography==50.0.0
 python-multipart==0.0.9
 httpx==0.27.0
 aiomqtt==2.0.0
