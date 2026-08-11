@@ -37,19 +37,3 @@ async def start_session(
     await db.refresh(db_session)
 
     return SessionStartResponse(db_session_id=db_session.id, opened_at=db_session.opened_at)
-
-
-@router.post("/{session_db_id}/close", status_code=204)
-async def close_session(
-    session_db_id: str,
-    db: AsyncSession = Depends(get_db),
-) -> None:
-    """Called by device (internal) when door closes."""
-    from datetime import datetime, timezone
-    from sqlalchemy import update
-    await db.execute(
-        update(Session)
-        .where(Session.id == session_db_id, Session.status == "open")
-        .values(status="closed", closed_at=datetime.now(timezone.utc))
-    )
-    await db.commit()
