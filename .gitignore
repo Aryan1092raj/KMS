@@ -33,6 +33,9 @@ out/
 .playwright-mcp/
 skills-lock.json
 
+# design/docs notes — repo carries only deployment-required files
+docs/
+
 # vercel
 .vercel/
 
