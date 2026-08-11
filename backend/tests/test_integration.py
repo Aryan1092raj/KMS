@@ -55,10 +55,10 @@ class TestRetrieveReturnFlow:
 
             svc = KeyService(mock_db)
             from app.schemas import RetrieveRequest
-            req = RetrieveRequest(session_id=str(uuid.uuid4()))
+            req = RetrieveRequest(session_id=uuid.uuid4())
 
             with pytest.raises(PermissionError):
-                await svc.retrieve(slot.id, uuid.uuid4(), str(uuid.uuid4()), req)
+                await svc.retrieve(slot.id, uuid.uuid4(), req)
 
     @pytest.mark.asyncio
     async def test_proximity_required_for_retrieve(self):

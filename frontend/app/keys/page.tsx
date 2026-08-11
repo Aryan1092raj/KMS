@@ -69,10 +69,9 @@ export default function KeysPage() {
   }, [fetchSlots]);
 
   async function handleRetrieve(slotId: string) {
-    const sessionId = sessionStorage.getItem("session_id") || "browser-session";
     setActionLoading(slotId);
     try {
-      await keys.retrieve(slotId, sessionId);
+      await keys.retrieve(slotId);
       setNotification({ type: "success", msg: "Key retrieved successfully. Check your email for details." });
       await fetchSlots();
     } catch (err: any) {
@@ -90,10 +89,9 @@ export default function KeysPage() {
   }
 
   async function handleReturn(slotId: string) {
-    const sessionId = sessionStorage.getItem("session_id") || "browser-session";
     setActionLoading(slotId);
     try {
-      await keys.returnKey(slotId, sessionId);
+      await keys.returnKey(slotId);
       setNotification({ type: "success", msg: "Key returned successfully." });
       await fetchSlots();
     } catch (err: any) {
@@ -109,10 +107,9 @@ export default function KeysPage() {
   }
 
   async function handleExtend(slotId: string) {
-    const sessionId = sessionStorage.getItem("session_id") || "";
     setActionLoading(`extend-${slotId}`);
     try {
-      const result = await keys.extend(slotId, sessionId);
+      const result = await keys.extend(slotId);
       setNotification({ type: "success", msg: `Extended. New due time: ${format(new Date(result.new_due_at), "h:mm a")}` });
       await fetchSlots();
     } catch (err: any) {

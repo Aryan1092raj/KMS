@@ -1,7 +1,7 @@
 """Keys router — list, retrieve, return, extend."""
 from typing import Annotated
 
-from fastapi import APIRouter, Cookie, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, require_proximity
@@ -36,12 +36,11 @@ async def retrieve_key(
     slot_id: uuid.UUID,
     req: RetrieveRequest,
     user: Annotated[User, Depends(get_current_user)],
-    session_id: str | None = Cookie(default=None),
     db: AsyncSession = Depends(get_db),
 ) -> RetrieveResponse:
     """Retrieve a key — requires proximity-verified flag + permission."""
     try:
-        return await KeyService(db).retrieve(slot_id, user.id, session_id, req)
+        return await KeyService(db).retrieve(slot_id, user.id, req)
     except PermissionError as e:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
     except RuntimeError as e:

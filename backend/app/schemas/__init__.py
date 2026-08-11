@@ -85,7 +85,10 @@ class KeySlotOut(BaseModel):
 
 
 class RetrieveRequest(BaseModel):
-    session_id: str
+    # FK to the door session opened by POST /sessions/start, when there is one.
+    # Typed as a UUID so a malformed value is rejected at the boundary with a 422
+    # instead of raising mid-transaction, after the slot has already been flipped.
+    session_id: uuid.UUID | None = None
 
 
 class RetrieveResponse(BaseModel):
@@ -96,7 +99,7 @@ class RetrieveResponse(BaseModel):
 
 
 class ReturnRequest(BaseModel):
-    session_id: str
+    session_id: uuid.UUID | None = None
 
 
 class ReturnResponse(BaseModel):
@@ -106,7 +109,7 @@ class ReturnResponse(BaseModel):
 
 
 class ExtendRequest(BaseModel):
-    session_id: str
+    session_id: uuid.UUID | None = None
     additional_hours: int = 6
 
     @field_validator("additional_hours")

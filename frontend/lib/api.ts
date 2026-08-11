@@ -85,22 +85,24 @@ export interface KeySlot {
 export const keys = {
   list: () => request<KeySlot[]>("/keys"),
 
-  retrieve: (slot_id: string, session_id: string) =>
+  // Identity comes from the session cookie; the body carries nothing the
+  // backend can't resolve itself.
+  retrieve: (slot_id: string) =>
     request<{ slot_id: string; status: string; due_at: string; retrieval_log_id: string }>(
       `/keys/${slot_id}/retrieve`,
-      { method: "POST", body: JSON.stringify({ session_id }) }
+      { method: "POST", body: "{}" }
     ),
 
-  returnKey: (slot_id: string, session_id: string) =>
+  returnKey: (slot_id: string) =>
     request<{ slot_id: string; status: string; returned_at: string }>(
       `/keys/${slot_id}/return`,
-      { method: "POST", body: JSON.stringify({ session_id }) }
+      { method: "POST", body: "{}" }
     ),
 
-  extend: (slot_id: string, session_id: string, additional_hours = 6) =>
+  extend: (slot_id: string, additional_hours = 6) =>
     request<{ slot_id: string; new_due_at: string; extension_count: number }>(
       `/keys/${slot_id}/extend`,
-      { method: "POST", body: JSON.stringify({ session_id, additional_hours }) }
+      { method: "POST", body: JSON.stringify({ additional_hours }) }
     ),
 };
 

@@ -1,6 +1,7 @@
 """Key service — retrieve, return, extend with atomic DB update + MQTT dispatch."""
 from __future__ import annotations
 
+import logging
 import uuid
 from datetime import datetime, timedelta, timezone
 
@@ -27,6 +28,7 @@ from app.services.mqtt_service import MQTTService
 from app.services.notification_service import NotificationService
 
 settings = get_settings()
+logger = logging.getLogger(__name__)
 
 
 class KeyService:
@@ -78,7 +80,7 @@ class KeyService:
     # ── Retrieve ──────────────────────────────────────────────────────────────
 
     async def retrieve(
-        self, slot_id: uuid.UUID, user_id: uuid.UUID, session_id: str, req: RetrieveRequest
+        self, slot_id: uuid.UUID, user_id: uuid.UUID, req: RetrieveRequest
     ) -> RetrieveResponse:
         slot = await self._get_slot(slot_id)
         if not slot:
@@ -100,14 +102,15 @@ class KeyService:
         if not updated:
             raise RuntimeError("slot_unavailable")
 
-        await self.db.commit()
-
-        # Create retrieval log
+        # The status flip and the retrieval log commit together. Committing the
+        # flip on its own would strand the slot as `retrieved` with no holder if
+        # anything below failed — _get_active_retrieval then returns None, so
+        # nobody can return the key and only manual SQL clears it.
         due_at = datetime.now(timezone.utc) + timedelta(hours=settings.default_possession_hours)
         log = RetrievalLog(
             key_slot_id=slot_id,
             user_id=user_id,
-            session_id=uuid.UUID(req.session_id) if req.session_id else None,
+            session_id=req.session_id,
             due_at=due_at,
         )
         self.db.add(log)
@@ -121,14 +124,18 @@ class KeyService:
         redis = get_redis()
         await redis.publish(live_status_channel(), f"retrieved:{slot_id}")
 
-        # Send retrieval confirmation email (FR-8)
+        # Send retrieval confirmation email (FR-8). Best-effort: the key is out
+        # and logged, so a mail failure must not fail the request.
         from app.models.user import User
         ur = await self.db.execute(select(User).where(User.id == user_id))
         user = ur.scalar_one_or_none()
         room_result = await self.db.execute(select(Room).where(Room.id == slot.room_id))
         room = room_result.scalar_one_or_none()
         if user and room:
-            await self.notifier.send_retrieval_confirmation(user, room, due_at)
+            try:
+                await self.notifier.send_retrieval_confirmation(user, room, due_at)
+            except Exception:
+                logger.exception("Retrieval confirmation email failed for slot %s", slot_id)
 
         await self._log(user_id, slot.device_id, "key_retrieved", {"slot_id": str(slot_id), "nonce": nonce})
 
