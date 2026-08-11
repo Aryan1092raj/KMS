@@ -1,33 +1,23 @@
-# Local Docker only. Compose loads this automatically on top of
-# docker-compose.yml — no -f flag needed.
+# Compose loads this file automatically on top of docker-compose.yml, so anything
+# uncommented here changes `docker compose up` for everyone. It is intentionally
+# empty: the base file is self-sufficient and needs no local edits.
 #
-# backend/.env points at localhost, which is correct when you run uvicorn on the
-# host but wrong inside a container: there localhost is the backend itself, not
-# the postgres/redis/mosquitto services. These `environment:` entries override
-# env_file so one .env keeps working for both.
-services:
-  backend:
-    environment:
-      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/skss
-      REDIS_URL: redis://redis:6379/0
-      MQTT_HOST: mosquitto
-      MQTT_PORT: 1883
-      MQTT_TLS: "false"
-      ALLOWED_ORIGINS: http://localhost:3000
-      # Enables /docs. Local only — it also loosens error detail.
-      DEBUG: "true"
-
-  frontend:
-    build:
-      # Default target is the production runner, which ships no node_modules and
-      # would fail compose's `npm run dev`.
-      target: dev
-    environment:
-      # The /api/* rewrite runs server-side, inside this container, so the
-      # default of localhost:8000 resolves to the frontend itself and every
-      # login 500s. host.docker.internal reaches the uvicorn on your host.
-      # Swap to http://backend:8000 if you run the backend in compose instead.
-      INTERNAL_API_URL: http://host.docker.internal:8000
-    extra_hosts:
-      # Docker Desktop provides this name automatically; Linux does not.
-      - "host.docker.internal:host-gateway"
+# Use it for machine-local tweaks you do not want to commit — or uncomment the
+# block below when you want the backend on the host (for a debugger or a REPL)
+# while the rest of the stack stays in compose:
+#
+#   docker compose up --no-deps postgres redis mosquitto frontend
+#   cd backend && .venv/bin/uvicorn app.main:app --reload
+#
+# (--no-deps keeps compose from starting the containerised backend, which the
+# frontend otherwise waits on.)
+#
+# services:
+#   frontend:
+#     environment:
+#       # The /api rewrite runs inside this container, so it needs a name that
+#       # resolves to the host. Docker Desktop provides it; Linux needs the
+#       # extra_hosts line below.
+#       INTERNAL_API_URL: http://host.docker.internal:8000
+#     extra_hosts:
+#       - "host.docker.internal:host-gateway"

@@ -23,6 +23,11 @@ services:
 
   redis:
     image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
     restart: unless-stopped
 
   postgres:
@@ -33,6 +38,11 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-skss}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
     restart: unless-stopped
 
   backend:
@@ -46,9 +56,20 @@ services:
     env_file:
       - ./backend/.env
     depends_on:
-      - mosquitto
-      - redis
-      - postgres
+      # The image runs `alembic upgrade head` before uvicorn, so it needs a
+      # Postgres that is accepting connections, not merely a started container.
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mosquitto:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
     restart: unless-stopped
 
   frontend:
@@ -69,7 +90,8 @@ services:
       PORT: "3000"
       NODE_ENV: production
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     restart: unless-stopped
 
 volumes:
