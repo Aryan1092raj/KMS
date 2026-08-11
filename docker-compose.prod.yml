@@ -10,15 +10,24 @@
 # Postgres and Redis publish no host ports — only the compose network reaches them.
 # Mosquitto keeps 1883 because ESP32 enclosures dial in from the campus LAN.
 #
-# Requires a .env beside this file with POSTGRES_USER and POSTGRES_PASSWORD set.
+# Requires a .env beside this file with POSTGRES_USER and POSTGRES_PASSWORD
+# set. MQTT_USERNAME / MQTT_PASSWORD are also required once enclosures go
+# live: the broker service below generates its password file from them at
+# boot, and the backend connects with the same pair.
 
 services:
   mosquitto:
     image: eclipse-mosquitto:2
     ports:
       - "1883:1883"
+    env_file:
+      - ./backend/.env
+    # Password file is built in-container from the env pair, so no hash is
+    # ever written to git. Fails loud at boot if the env pair is missing.
+    command: sh -c "test -n \"$${MQTT_USERNAME}\" -a -n \"$${MQTT_PASSWORD}\" || { echo 'MQTT_USERNAME/MQTT_PASSWORD not set'; exit 1; }; touch /mosquitto/config/passwd && chmod 600 /mosquitto/config/passwd && chown mosquitto:mosquitto /mosquitto/config/passwd && mosquitto_passwd -b /mosquitto/config/passwd \"$${MQTT_USERNAME}\" \"$${MQTT_PASSWORD}\" && exec mosquitto -c /mosquitto/config/mosquitto.prod.conf"
     volumes:
-      - ./mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - ./mosquitto.prod.conf:/mosquitto/config/mosquitto.prod.conf:ro
+      - ./mosquitto.acl:/mosquitto/config/mosquitto.acl:ro
     restart: unless-stopped
 
   redis:
