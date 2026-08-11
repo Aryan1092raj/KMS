@@ -50,3 +50,4 @@ build/
 .DS_Store
 *.log
 backend/alembic/versions/add_script_executions.py
+backend/scripts/
