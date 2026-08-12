@@ -15,7 +15,7 @@ export default function TOTPVerifyPage() {
     inputRef.current?.focus();
   }, []);
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent | { preventDefault: () => void }, overrideCode?: string) {
     e.preventDefault();
     // The 6th digit auto-submits, so a Verify click lands a second request.
     // temp_token is single-use, so that one always fails as "expired".
@@ -27,8 +27,9 @@ export default function TOTPVerifyPage() {
       return;
     }
     setLoading(true);
+    const finalCode = (overrideCode ?? code).trim();
     try {
-      const res = await auth.verifyTOTP(temp_token, code.trim());
+      const res = await auth.verifyTOTP(temp_token, finalCode);
       sessionStorage.removeItem("temp_token");
       router.push(res.role === "admin" ? "/admin" : "/keys");
     } catch (err: any) {
@@ -53,7 +54,9 @@ export default function TOTPVerifyPage() {
     const digits = val.replace(/\D/g, "").slice(0, 6);
     setCode(digits);
     if (digits.length === 6) {
-      handleSubmit({ preventDefault: () => {} } as any);
+      // Pass the digits explicitly — `code` in the closure is the stale
+      // pre-update value (empty on first call), which would submit "".
+      handleSubmit({ preventDefault: () => {} } as any, digits);
     }
   }
 
