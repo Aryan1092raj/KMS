@@ -106,6 +106,70 @@ export const keys = {
     ),
 };
 
+// ── Scripts ───────────────────────────────────────────────────────────────────
+
+export type ScriptStatus = "running" | "completed" | "killed" | "failed";
+
+export interface ScriptExecution {
+  id: string;
+  user_id: string;
+  script_name: string;
+  status: ScriptStatus;
+  pid: number | null;
+  started_at: string;
+  finished_at: string | null;
+  exit_code: number | null;
+  output: string | null;
+  error: string | null;
+}
+
+export interface ScriptRunResponse {
+  execution_id: string;
+  status: ScriptStatus;
+}
+
+export interface ScriptKillResponse {
+  execution_id: string;
+  status: ScriptStatus;
+  message: string;
+}
+
+export interface ScriptEvent {
+  type: "status" | "output" | "done" | "error";
+  status?: ScriptStatus;
+  output?: string;
+  execution_id: string;
+  exit_code?: number;
+  message?: string;
+}
+
+export const scripts = {
+  run: (script_name: string) =>
+    request<ScriptRunResponse>("/scripts", {
+      method: "POST",
+      body: JSON.stringify({ script_name }),
+    }),
+
+  kill: (execution_id: string) =>
+    request<ScriptKillResponse>(`/scripts/${execution_id}/kill`, {
+      method: "POST",
+    }),
+
+  getStatus: (execution_id: string) =>
+    request<ScriptExecution>(`/scripts/${execution_id}`),
+
+  list: (limit = 50) =>
+    request<ScriptExecution[]>(`/scripts?limit=${limit}`),
+
+  // SSE event stream — returns an EventSource for live updates
+  events: (execution_id: string): EventSource => {
+    const es = new EventSource(`${API}/scripts/${execution_id}/events`, {
+      withCredentials: true,
+    });
+    return es;
+  },
+};
+
 // ── Admin ─────────────────────────────────────────────────────────────────────
 
 export interface User {

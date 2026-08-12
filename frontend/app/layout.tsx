@@ -10,6 +10,7 @@ export const metadata: Metadata = {
 
 import SpotlightTracker from "@/components/SpotlightTracker";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { ToastProvider } from "@/components/ui/Toast";
 
 export default function RootLayout({
   children,
@@ -28,8 +29,10 @@ export default function RootLayout({
       </head>
       <body>
         <ThemeProvider>
-          <SpotlightTracker />
-          {children}
+          <ToastProvider>
+            <SpotlightTracker />
+            {children}
+          </ToastProvider>
         </ThemeProvider>
       </body>
     </html>

@@ -11,7 +11,7 @@ if not hasattr(bcrypt, "__about__"):
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import admin, auth, keys, proximity, sessions
+from app.api import admin, auth, keys, proximity, scripts, sessions
 from app.core.config import get_settings
 from app.core.redis_client import close_redis, get_redis, live_status_channel
 from app.core.security import redeem_ws_ticket
@@ -45,6 +45,7 @@ app.include_router(auth.router)
 app.include_router(sessions.router)
 app.include_router(keys.router)
 app.include_router(admin.router)
+app.include_router(scripts.router)
 
 
 @app.on_event("startup")

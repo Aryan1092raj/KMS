@@ -7,6 +7,23 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
+# Import ScriptExecution FIRST to ensure User.mapper has the script_executions relationship
+from app.models.script_execution import ScriptExecution, ScriptStatus
+
+# Now import other models
+from app.models import (
+    User,
+    Room,
+    Device,
+    KeySlot,
+    Permission,
+    Session,
+    RetrievalLog,
+    AccessLog,
+    OverrideLog,
+    Notification,
+)
+
 
 class TestRetrieveReturnFlow:
     """Integration tests for the key retrieve/return flow."""

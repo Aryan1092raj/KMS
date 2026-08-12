@@ -36,11 +36,6 @@ skills-lock.json
 # design/docs notes — repo carries only deployment-required files
 docs/
 
-# WIP remote script-execution feature — kept out of the public repo
-backend/app/api/scripts.py
-backend/app/models/script_execution.py
-backend/app/services/script_registry.py
-
 # vercel
 .vercel/
 
@@ -49,5 +44,3 @@ dist/
 build/
 .DS_Store
 *.log
-backend/alembic/versions/add_script_executions.py
-backend/scripts/

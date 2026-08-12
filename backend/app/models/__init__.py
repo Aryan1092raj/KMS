@@ -1,4 +1,6 @@
 """SQLAlchemy ORM models package."""
+# Import ScriptExecution first so User.mapper can reference it
+from app.models.script_execution import ScriptExecution, ScriptStatus
 from app.models.user import User
 from app.models.room import Room
 from app.models.device import Device
@@ -21,4 +23,6 @@ __all__ = [
     "AccessLog",
     "OverrideLog",
     "Notification",
+    "ScriptExecution",
+    "ScriptStatus",
 ]

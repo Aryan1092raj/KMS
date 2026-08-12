@@ -10,6 +10,7 @@ from pydantic import BaseModel, EmailStr, field_validator
 from app.models.key_slot import KeyStatus
 from app.models.override_log import OverrideTrigger
 from app.models.retrieval_log import RetrievalStatus
+from app.models.script_execution import ScriptStatus
 from app.models.user import UserRole
 
 
@@ -124,6 +125,38 @@ class ExtendResponse(BaseModel):
     slot_id: uuid.UUID
     new_due_at: datetime
     extension_count: int
+
+
+# ── Scripts ───────────────────────────────────────────────────────────────────
+
+class ScriptRunRequest(BaseModel):
+    script_name: str
+
+
+class ScriptRunResponse(BaseModel):
+    execution_id: uuid.UUID
+    status: ScriptStatus
+
+
+class ScriptKillResponse(BaseModel):
+    execution_id: uuid.UUID
+    status: ScriptStatus
+    message: str
+
+
+class ScriptStatusOut(BaseModel):
+    id: uuid.UUID
+    user_id: uuid.UUID
+    script_name: str
+    status: ScriptStatus
+    pid: int | None
+    started_at: datetime
+    finished_at: datetime | None
+    exit_code: int | None
+    output: str | None
+    error: str | None
+
+    model_config = {"from_attributes": True}
 
 
 # ── Admin — Users ─────────────────────────────────────────────────────────────
