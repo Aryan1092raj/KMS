@@ -18,7 +18,7 @@ class ScriptEntry:
     script_name: str
     pid: int
     started_at: datetime
-    process: Optional[object] = None  # subprocess.Popen
+    process: object = None  # asyncio.subprocess.Process
     kill_event: threading.Event = field(default_factory=threading.Event)
 
 
