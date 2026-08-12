@@ -41,3 +41,4 @@ class User(Base):
     sessions: Mapped[list["Session"]] = relationship("Session", back_populates="user")
     retrieval_logs: Mapped[list["RetrievalLog"]] = relationship("RetrievalLog", foreign_keys="RetrievalLog.user_id", back_populates="user")
     coordinated_rooms: Mapped[list["Room"]] = relationship("Room", back_populates="coordinator")
+    script_executions: Mapped[list["ScriptExecution"]] = relationship("ScriptExecution", back_populates="user")
