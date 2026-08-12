@@ -44,3 +44,7 @@ dist/
 build/
 .DS_Store
 *.log
+
+# ops helpers + tests stay local
+backend/scripts/
+backend/tests/
