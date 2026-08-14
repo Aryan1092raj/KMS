@@ -3,10 +3,6 @@ KMS ESP System Report
 Project: KMS (Cabinet Management System) — ESP32 captive-portal + secure UART relay
 Path: docs/KMS_ESP_report.pdf
 
-NOTE: This file is a plain-text report saved with a .pdf extension. If you need a true binary PDF file, I can generate one and re-commit; tell me and I will create a proper PDF (or add the Markdown and let you convert locally).
-
-1. Simple explanation (non-technical)
-
 Hardware overview
 - Two ESP32 microcontroller boards.
   - Cabinet ESP: creates a Wi-Fi access point (SoftAP) that serves the KMS web UI to any connected user (captive portal behavior).
@@ -23,7 +19,7 @@ Security overview
 - Action messages are encrypted using AES-CTR and authenticated with HMAC-SHA256.
 - Each device should have its own unique 32-byte shared key.
 
-2. Files included (full code listings)
+2. Files included
 
 A) Cabinet ESP (SoftAP + captive portal + encrypt & send over UART)
 
@@ -402,7 +398,7 @@ document.getElementById('btnClose').addEventListener('click', async ()=>{
 function log(s){ document.getElementById('out').textContent += s + "\n"; }
 
 
-3. How to deploy (step-by-step)
+3. How to deploy
 
 Prerequisites
 - Two ESP32 boards
@@ -452,8 +448,3 @@ Test flow
 6. Next steps & notes
 - For production, move to a more robust authentication system, key provisioning, and secure OTA.
 - Consider ESP-NOW or MQTT-over-TLS if you need scalable networking instead of direct UART.
-
-End of report
-
----
-Commit metadata: Added textual report with code listings and sample web UI. Replace this file with a proper binary PDF if you require a standard PDF file.
