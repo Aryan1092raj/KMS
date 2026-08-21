@@ -85,7 +85,7 @@ export default function AdminDashboardPage() {
           </div>
 
           <div className="section-heading"><h2>Device health</h2><span>{data.device_summary.length} registered</span></div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "1rem", marginBottom: "2rem" }}>
+          <div className="admin-device-grid">
             {data.device_summary.map((device) => {
               const battPct = device.battery_pct ?? 0;
               const battClass = battPct >= 50 ? "ok" : battPct >= 20 ? "low" : "critical";
@@ -94,11 +94,11 @@ export default function AdminDashboardPage() {
                 : "Never";
               return (
                 <div key={device.id} className="device-card">
-                  <div className="device-name" style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                  <div className="device-name">
                     <span className={`dot dot--${device.status === "online" ? "green" : "red"}`} />
                     {device.name}
                     {device.on_backup_power && (
-                      <span style={{ fontSize: "0.7rem", color: "var(--c-warning)", marginLeft: "auto" }}>BACKUP POWER</span>
+                      <span className="device-backup">BACKUP POWER</span>
                     )}
                   </div>
                   <div className="device-stats">
@@ -128,7 +128,7 @@ export default function AdminDashboardPage() {
           </div>
 
           <div className="section-heading"><h2>Shortcuts</h2><span>Common tasks</span></div>
-          <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
+          <div className="quick-actions">
             <a href="/admin/monitoring" className="btn btn-primary">Live monitoring</a>
             <a href="/admin/logs" className="btn btn-ghost">Audit logs</a>
             <a href="/admin/users" className="btn btn-ghost">Manage users</a>

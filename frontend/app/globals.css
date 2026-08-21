@@ -439,7 +439,25 @@ td { padding: 0.875rem 1rem; font-size: 0.875rem; }
 
 /* ── Main content with sidebar ─────────────────────────────────────────────── */
 .layout-with-sidebar { display: flex; min-height: 100vh; }
-.main-content { flex: 1; margin-left: 260px; padding: 2rem; }
+.main-content { flex: 1; min-width: 0; margin-left: 260px; padding: 2rem; }
+.page-header { display: flex; align-items: center; justify-content: space-between; gap: 1.5rem; margin-bottom: 2rem; }
+.page-title { margin: 0; font-size: clamp(1.8rem, 4vw, 2.65rem); }
+.page-subtitle { margin-top: 0.4rem; color: var(--c-text-muted); font-size: 0.9rem; }
+.admin-device-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 1rem; margin-bottom: 2rem; }
+.device-card { min-width: 0; padding: 1.15rem; background: var(--c-surface); border: 1px solid var(--c-border); border-radius: 4px; }
+.device-name { display: flex; min-width: 0; align-items: center; gap: 0.5rem; margin-bottom: 1rem; font-weight: 700; overflow-wrap: anywhere; }
+.device-name .dot { flex: 0 0 auto; }
+.device-backup { margin-left: auto; color: var(--c-warning); font: 600 0.62rem 'JetBrains Mono', monospace; text-align: right; }
+.device-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem; }
+.device-stat-item { min-width: 0; }
+.device-stat-label { display: block; margin-bottom: 0.25rem; color: var(--c-text-dim); font: 600 0.65rem 'JetBrains Mono', monospace; text-transform: uppercase; letter-spacing: 0.04em; }
+.device-stat-value { display: block; min-width: 0; color: var(--c-text); font: 500 0.82rem 'JetBrains Mono', monospace; overflow-wrap: anywhere; }
+.battery-bar { height: 4px; margin-top: 0.4rem; overflow: hidden; background: var(--c-bg3); }
+.battery-fill { height: 100%; }
+.battery-fill--ok { background: var(--c-success); }
+.battery-fill--low { background: var(--c-warning); }
+.battery-fill--critical { background: var(--c-danger); }
+.quick-actions { display: flex; flex-wrap: wrap; gap: 0.75rem; }
 .mobile-admin-bar, .sidebar-scrim { display: none; }
 .eyebrow { color: var(--c-accent); font: 600 0.68rem 'JetBrains Mono', monospace; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 0.55rem; }
 .section-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; margin: 2rem 0 1rem; }
@@ -880,6 +898,7 @@ td { padding: 0.875rem 1rem; font-size: 0.875rem; }
   .page-header { align-items: flex-start; gap: 1rem; }
   .page-header .btn { align-self: flex-start; }
   .section-heading { margin-top: 1.5rem; }
+  .device-stats { gap: 0.75rem; }
 }
 
 @media (max-width: 480px) {
@@ -889,4 +908,6 @@ td { padding: 0.875rem 1rem; font-size: 0.875rem; }
   .page-title { font-size: 1.8rem; }
   .page-header { flex-direction: column; }
   .page-header .btn { width: 100%; justify-content: center; }
+  .section-heading span { white-space: nowrap; }
+  .quick-actions .btn { flex: 1 1 calc(50% - 0.375rem); justify-content: center; }
 }
