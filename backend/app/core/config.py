@@ -39,6 +39,7 @@ class Settings(BaseSettings):
 
     # ── Auth ──────────────────────────────────────────────────────
     session_ttl_seconds: int = 3600          # 1 hour
+    cookie_secure: bool = True
     proximity_code_ttl_seconds: int = 120    # 2 minutes
     proximity_flag_ttl_seconds: int = 300    # 5 minutes
     login_max_attempts: int = 5

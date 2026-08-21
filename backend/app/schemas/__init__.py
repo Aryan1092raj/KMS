@@ -5,7 +5,7 @@ import uuid
 from datetime import datetime
 from typing import Any
 
-from pydantic import BaseModel, EmailStr, field_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator
 
 from app.models.key_slot import KeyStatus
 from app.models.override_log import OverrideTrigger
@@ -22,12 +22,11 @@ class LoginRequest(BaseModel):
 
 
 class TOTPVerifyRequest(BaseModel):
-    temp_token: str   # short-lived token issued after password check
     code: str
 
 
 class TOTPSetupRequest(BaseModel):
-    temp_token: str   # authorises enrollment before a session exists
+    pass
 
 
 class TOTPSetupResponse(BaseModel):
@@ -36,7 +35,7 @@ class TOTPSetupResponse(BaseModel):
 
 
 class SessionResponse(BaseModel):
-    session_id: str
+    session_id: str | None = Field(default=None, exclude=True)
     user_id: uuid.UUID
     role: UserRole
 

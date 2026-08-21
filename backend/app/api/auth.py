@@ -21,32 +21,45 @@ settings = get_settings()
 
 
 @router.post("/login")
-async def login(req: LoginRequest, db: AsyncSession = Depends(get_db)) -> dict:
+async def login(req: LoginRequest, response: Response, db: AsyncSession = Depends(get_db)) -> dict:
     """Step 1: credentials → returns temp_token for TOTP challenge."""
     try:
-        return await AuthService(db).login(req)
+        result = await AuthService(db).login(req)
+        temp_token = result.pop("temp_token")
+        response.set_cookie(
+            "auth_challenge", temp_token, httponly=True, samesite="lax",
+            secure=settings.cookie_secure, max_age=300, path="/",
+        )
+        return result
     except (ValueError, PermissionError) as e:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
 
 
 @router.post("/totp/verify", response_model=SessionResponse)
 async def verify_totp(
-    req: TOTPVerifyRequest, response: Response, db: AsyncSession = Depends(get_db)
+    req: TOTPVerifyRequest,
+    response: Response,
+    auth_challenge: str | None = Cookie(default=None),
+    db: AsyncSession = Depends(get_db),
 ) -> SessionResponse:
     """Step 2: TOTP → issues session_id cookie."""
     try:
-        result = await AuthService(db).verify_totp(req)
+        if not auth_challenge:
+            raise ValueError("Invalid or expired authentication challenge.")
+        result = await AuthService(db).verify_totp(req, auth_challenge)
         # Set HttpOnly session cookie
         response.set_cookie(
             "session_id",
             result.session_id,
             httponly=True,
             samesite="lax",
-            secure=True,
+            secure=settings.cookie_secure,
+            path="/",
             # Tied to the Redis session TTL — a cookie that outlives the session
             # only produces confusing 401s after the fact.
             max_age=settings.session_ttl_seconds,
         )
+        response.delete_cookie("auth_challenge", path="/")
         return result
     except (ValueError, PermissionError) as e:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
@@ -55,6 +68,7 @@ async def verify_totp(
 @router.post("/totp/setup", response_model=TOTPSetupResponse)
 async def setup_totp(
     req: TOTPSetupRequest,
+    auth_challenge: str | None = Cookie(default=None),
     db: AsyncSession = Depends(get_db),
 ) -> TOTPSetupResponse:
     """
@@ -65,7 +79,9 @@ async def setup_totp(
     after TOTP verification.
     """
     try:
-        return await AuthService(db).setup_totp_with_temp_token(req.temp_token)
+        if not auth_challenge:
+            raise ValueError("Invalid or expired authentication challenge.")
+        return await AuthService(db).setup_totp_with_temp_token(auth_challenge)
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
     except PermissionError as e:
@@ -98,3 +114,4 @@ async def logout(
     if session_id:
         await AuthService(db).logout(session_id)
     response.delete_cookie("session_id")
+    response.delete_cookie("auth_challenge", path="/")

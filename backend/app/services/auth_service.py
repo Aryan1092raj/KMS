@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import uuid
+import asyncio
 from datetime import datetime, timezone
 
 from sqlalchemy import select
@@ -30,12 +31,12 @@ class AuthService:
             await self._log_event(None, None, "login_fail", {"reason": "rate_limited", "email": req.email})
             raise PermissionError("Too many login attempts. Try again in 15 minutes.")
 
-        user = await self._get_user_by_email(req.email)
-        if not user or not security.verify_password(req.password, user.password_hash):
-            if user:
-                await security.record_login_attempt(req.email)
+        email = str(req.email).strip().lower()
+        user = await self._get_user_by_email(email)
+        if not user or not await asyncio.to_thread(security.verify_password, req.password, user.password_hash):
+            await security.record_login_attempt(email)
             await self._log_event(
-                user.id if user else None, None, "login_fail", {"email": req.email}
+                user.id if user else None, None, "login_fail", {"email": email}
             )
             raise ValueError("Invalid email or password.")
 
@@ -56,8 +57,8 @@ class AuthService:
 
     # ── TOTP verify (step 2) ──────────────────────────────────────────────────
 
-    async def verify_totp(self, req: TOTPVerifyRequest) -> SessionResponse:
-        user_id = await self._consume_temp_token(req.temp_token)
+    async def verify_totp(self, req: TOTPVerifyRequest, temp_token: str) -> SessionResponse:
+        user_id = await security.consume_temp_token(temp_token)
         if not user_id:
             raise ValueError("Invalid or expired token.")
 
@@ -144,14 +145,6 @@ class AuthService:
         token = security.generate_session_id()
         await redis.setex(f"temp:{token}", 300, user_id)  # 5 min
         return token
-
-    async def _consume_temp_token(self, token: str) -> str | None:
-        redis = get_redis()
-        key = f"temp:{token}"
-        user_id = await redis.get(key)
-        if user_id:
-            await redis.delete(key)
-        return user_id
 
     async def _peek_temp_token(self, token: str) -> str | None:
         """Read without consuming — the TOTP verify step still needs this token."""

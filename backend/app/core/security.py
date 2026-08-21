@@ -91,6 +91,10 @@ async def delete_session(session_id: str) -> None:
     await redis.delete(session_key(session_id))
 
 
+async def consume_temp_token(token: str) -> str | None:
+    return await get_redis().getdel(f"temp:{token}")
+
+
 # ── Proximity flag ────────────────────────────────────────────────────────────
 
 async def set_proximity_flag(session_id: str, device_id: str) -> None:
