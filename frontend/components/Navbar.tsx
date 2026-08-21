@@ -1,16 +1,29 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useTheme } from "@/components/ThemeProvider";
+import { auth } from "@/lib/api";
 
 export default function Navbar() {
   const pathname = usePathname();
+  const router = useRouter();
   const { theme, toggleTheme } = useTheme();
   const [open, setOpen] = useState(false);
+  const [user, setUser] = useState<{ role: string } | null>(null);
 
   useEffect(() => setOpen(false), [pathname]);
+
+  useEffect(() => {
+    auth.me().then(setUser).catch(() => setUser(null));
+  }, [pathname]);
+
+  async function handleLogout() {
+    await auth.logout();
+    setUser(null);
+    router.push("/login");
+  }
 
   return (
     <header className="navbar-wrapper">
@@ -34,12 +47,18 @@ export default function Navbar() {
           >
             Key Status
           </Link>
-          <Link
-            href="/login"
-            className={`navbar-link${pathname === "/login" || pathname?.startsWith("/login") ? " active" : ""}`}
-          >
-            Sign In
-          </Link>
+          {user ? (
+            <button type="button" className="navbar-link navbar-link--button" onClick={handleLogout}>
+              Sign Out
+            </button>
+          ) : (
+            <Link
+              href="/login"
+              className={`navbar-link${pathname === "/login" || pathname?.startsWith("/login") ? " active" : ""}`}
+            >
+              Sign In
+            </Link>
+          )}
           <button
             onClick={toggleTheme}
             className="theme-toggle-btn"

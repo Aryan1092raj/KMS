@@ -25,6 +25,8 @@ async function request<T>(
 // ── Auth ──────────────────────────────────────────────────────────────────────
 
 export const auth = {
+  me: () => request<{ id: string; name: string; role: string }>("/auth/me"),
+
   login: (email: string, password: string) =>
     request<{ requires_totp?: boolean; requires_totp_setup?: boolean }>(
       "/auth/login",

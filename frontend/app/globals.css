@@ -176,6 +176,7 @@ a:hover { color: var(--c-accent); }
   color: var(--c-text);
   background: var(--c-bg2);
 }
+.navbar-link--button { border: 0; background: none; cursor: pointer; font: inherit; }
 
 .theme-toggle-btn {
   background: var(--c-bg2);
