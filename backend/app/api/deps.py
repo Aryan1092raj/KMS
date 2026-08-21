@@ -6,10 +6,12 @@ from typing import Annotated
 
 from fastapi import Cookie, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.core.database import get_db
 from app.core.security import check_proximity_flag, get_session
 from app.models.user import User, UserRole
+from app.models.permission import Permission
 
 
 async def get_current_session(
@@ -31,7 +33,11 @@ async def get_current_user(
     """Resolve the User object from the current session."""
     from sqlalchemy import select
     user_id = uuid.UUID(session["user_id"])
-    r = await db.execute(select(User).where(User.id == user_id))
+    r = await db.execute(
+        select(User)
+        .options(selectinload(User.permissions).selectinload(Permission.room))
+        .where(User.id == user_id)
+    )
     user = r.scalar_one_or_none()
     if not user or not user.is_active:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found or deactivated")

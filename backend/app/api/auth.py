@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import get_settings
 from app.core.database import get_db
 from app.api.deps import get_current_user
-from app.models.user import User
+from app.models.user import User, UserRole
 from app.core.security import get_session, issue_ws_ticket
 from app.schemas import (
     LoginRequest,
@@ -24,7 +24,20 @@ settings = get_settings()
 
 @router.get("/me")
 async def current_user(user: User = Depends(get_current_user)) -> dict:
-    return {"id": str(user.id), "name": user.name, "role": user.role.value}
+    # Admins have unrestricted access, so show the system-wide access label.
+    # Other users see the rooms/clubs explicitly assigned to them.
+    access_names = (
+        ["Master"]
+        if user.role == UserRole.admin
+        else sorted({permission.room.name for permission in user.permissions if permission.room})
+    )
+    return {
+        "id": str(user.id),
+        "name": user.name,
+        "roll_no": user.roll_no,
+        "role": user.role.value,
+        "access_names": access_names,
+    }
 
 
 @router.post("/login")

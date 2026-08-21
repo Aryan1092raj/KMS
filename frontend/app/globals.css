@@ -158,6 +158,10 @@ a:hover { color: var(--c-accent); }
   text-decoration: none;
   letter-spacing: 0.05em;
 }
+.navbar-user-summary { display: flex; align-items: center; gap: 0.65rem; padding: 0.35rem 0.75rem; border-left: 1px solid var(--c-border); color: var(--c-text-muted); font-size: 0.68rem; white-space: nowrap; }
+.navbar-user-summary strong { color: var(--c-text); font-size: 0.75rem; }
+.navbar-user-status { display: inline-flex; align-items: center; gap: 0.3rem; color: var(--c-success); font-size: 0.65rem; font-weight: 700; }
+.navbar-user-summary .dot { width: 6px; height: 6px; }
 .navbar-links {
   display: flex;
   align-items: center;
@@ -852,6 +856,7 @@ td { padding: 0.875rem 1rem; font-size: 0.875rem; }
   .navbar-wrapper { top: 0.5rem; padding: 0 0.75rem; }
   .navbar-pill { position: relative; padding: 0.5rem 0.65rem 0.5rem 0.9rem; gap: 0.5rem; border-radius: 14px; }
   .navbar-brand { font-size: 0.95rem; }
+  .navbar-user-summary { display: none; }
   .navbar-menu-toggle { display: grid; gap: 4px; width: 36px; height: 36px; place-content: center; border: 1px solid var(--c-border); background: var(--c-bg2); color: var(--c-text); cursor: pointer; }
   .navbar-menu-toggle span { display: block; width: 16px; height: 2px; background: currentColor; }
   .navbar-links { display: none; position: absolute; top: calc(100% + 0.5rem); left: 0; right: 0; flex-direction: column; align-items: stretch; gap: 0.25rem; padding: 0.5rem; background: var(--c-surface); border: 1px solid var(--c-border); border-radius: 14px; box-shadow: var(--shadow); }

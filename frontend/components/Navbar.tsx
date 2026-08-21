@@ -11,7 +11,7 @@ export default function Navbar() {
   const router = useRouter();
   const { theme, toggleTheme } = useTheme();
   const [open, setOpen] = useState(false);
-  const [user, setUser] = useState<{ role: string } | null>(null);
+  const [user, setUser] = useState<Awaited<ReturnType<typeof auth.me>> | null>(null);
   const [loggingOut, setLoggingOut] = useState(false);
 
   useEffect(() => setOpen(false), [pathname]);
@@ -39,6 +39,14 @@ export default function Navbar() {
         <Link href="/" className="navbar-brand">
           <span>Robotronics</span>
         </Link>
+        {user && (
+          <div className="navbar-user-summary" aria-label="Logged-in user details">
+            <span className="navbar-user-status"><span className="dot dot--green" /> You are logged in</span>
+            <strong>{user.name}</strong>
+            <span>Roll No: {user.roll_no || "—"}</span>
+            <span>Access: {user.role === "admin" ? "Master" : user.access_names.join(", ") || "None"}</span>
+          </div>
+        )}
         <button className="navbar-menu-toggle" type="button" onClick={() => setOpen(!open)} aria-expanded={open} aria-controls="site-navigation" aria-label={open ? "Close menu" : "Open menu"}>
           <span /><span /><span />
         </button>
