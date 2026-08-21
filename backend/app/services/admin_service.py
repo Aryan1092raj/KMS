@@ -188,34 +188,55 @@ class AdminService:
 
     # ── Dashboard ─────────────────────────────────────────────────────────────
 
-    async def get_dashboard(self) -> DashboardSummary:
+    async def get_dashboard(self, room_ids: list[uuid.UUID] | None = None) -> DashboardSummary:
         from app.models.key_slot import KeyStatus as KS
         now = datetime.now(timezone.utc)
 
+        slot_ids = select(KeySlot.id)
+        device_ids = select(KeySlot.device_id)
+        if room_ids is not None:
+            slot_ids = slot_ids.where(KeySlot.room_id.in_(room_ids))
+            device_ids = device_ids.where(KeySlot.room_id.in_(room_ids))
+
+        key_conditions = [KeySlot.status == KS.retrieved]
+        if room_ids is not None:
+            key_conditions.append(KeySlot.room_id.in_(room_ids))
+
         keys_out_r = await self.db.execute(
-            select(func.count()).select_from(KeySlot).where(KeySlot.status == KS.retrieved)
+            select(func.count()).select_from(KeySlot).where(*key_conditions)
         )
         keys_out = keys_out_r.scalar() or 0
 
         overdue_r = await self.db.execute(
             select(func.count()).select_from(RetrievalLog).where(
-                RetrievalLog.status == RetrievalStatus.active,
+                RetrievalLog.status.in_((RetrievalStatus.active, RetrievalStatus.overdue)),
                 RetrievalLog.due_at < now,
+                RetrievalLog.key_slot_id.in_(slot_ids),
             )
         )
         overdue_count = overdue_r.scalar() or 0
 
         tamper_r = await self.db.execute(
-            select(func.count()).select_from(OverrideLog).where(OverrideLog.resolved_at == None)
+            select(func.count()).select_from(OverrideLog).where(
+                OverrideLog.resolved_at == None,
+                *([OverrideLog.device_id.in_(device_ids)] if room_ids is not None else []),
+            )
         )
         tamper_count = tamper_r.scalar() or 0
 
-        devices = await self.list_devices()
+        device_query = select(Device)
+        if room_ids is not None:
+            device_query = device_query.where(Device.id.in_(device_ids))
+        device_result = await self.db.execute(device_query)
+        devices = [DeviceOut.model_validate(d) for d in device_result.scalars()]
 
         from datetime import date
         today_start = datetime.combine(date.today(), datetime.min.time()).replace(tzinfo=timezone.utc)
+        today_conditions = [RetrievalLog.retrieved_at >= today_start]
+        if room_ids is not None:
+            today_conditions.append(RetrievalLog.key_slot_id.in_(slot_ids))
         today_r = await self.db.execute(
-            select(func.count()).select_from(RetrievalLog).where(RetrievalLog.retrieved_at >= today_start)
+            select(func.count()).select_from(RetrievalLog).where(*today_conditions)
         )
         today_count = today_r.scalar() or 0
 

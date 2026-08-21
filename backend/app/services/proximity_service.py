@@ -25,8 +25,11 @@ class ProximityService:
         if req.device_id and uuid.UUID(stored_device_id) != req.device_id:
             raise ValueError("Proximity code does not match the given device.")
 
-        # Consume the code (single-use)
-        await redis.delete(key)
+        # The final GETDEL is the single-use gate. Multiple requests may pass
+        # the read above, but only one can consume the code successfully.
+        consumed_device_id = await redis.getdel(key)
+        if consumed_device_id != stored_device_id:
+            raise ValueError("Proximity code invalid or expired.")
 
         # Set the proximity-verified flag on this session
         await set_proximity_flag(session_id, stored_device_id)

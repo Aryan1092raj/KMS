@@ -33,7 +33,9 @@ async def check_due_notifications() -> None:
 
     async with AsyncSessionLocal() as db:
         r = await db.execute(
-            select(RetrievalLog).where(RetrievalLog.status == RetrievalStatus.active)
+            select(RetrievalLog).where(
+                RetrievalLog.status.in_((RetrievalStatus.active, RetrievalStatus.overdue))
+            )
         )
         active_logs = r.scalars().all()
 

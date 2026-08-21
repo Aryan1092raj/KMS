@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_current_user, require_admin, require_coordinator_or_admin
 from app.core.database import get_db
 from app.models.access_log import AccessLog
+from app.models.key_slot import KeySlot
 from app.models.override_log import OverrideLog
 from app.models.retrieval_log import RetrievalLog
 from app.models.user import User, UserRole
@@ -43,12 +44,8 @@ async def dashboard(
     db: AsyncSession = Depends(get_db),
 ) -> DashboardSummary:
     svc = AdminService(db)
-    summary = await svc.get_dashboard()
-    # Scope: coordinator sees only their room(s)
-    if user.role == UserRole.coordinator:
-        coord_rooms = await svc.get_coordinator_rooms(user.id)
-        # Filtered summary for coordinator would require extra logic; returning full for now
-    return summary
+    room_ids = await svc.get_coordinator_rooms(user.id) if user.role == UserRole.coordinator else None
+    return await svc.get_dashboard(room_ids)
 
 
 # ── Users ─────────────────────────────────────────────────────────────────────
@@ -163,7 +160,12 @@ async def get_access_logs(
     skip: int = 0, limit: int = 100,
     db: AsyncSession = Depends(get_db),
 ) -> list[AccessLogOut]:
-    r = await db.execute(select(AccessLog).order_by(AccessLog.ts.desc()).offset(skip).limit(limit))
+    query = select(AccessLog)
+    if user.role == UserRole.coordinator:
+        room_ids = await AdminService(db).get_coordinator_rooms(user.id)
+        device_ids = select(KeySlot.device_id).where(KeySlot.room_id.in_(room_ids))
+        query = query.where(AccessLog.device_id.in_(device_ids))
+    r = await db.execute(query.order_by(AccessLog.ts.desc()).offset(skip).limit(limit))
     return [AccessLogOut.model_validate(l) for l in r.scalars()]
 
 
@@ -173,7 +175,12 @@ async def get_retrieval_logs(
     skip: int = 0, limit: int = 100,
     db: AsyncSession = Depends(get_db),
 ) -> list[RetrievalLogOut]:
-    r = await db.execute(select(RetrievalLog).order_by(RetrievalLog.retrieved_at.desc()).offset(skip).limit(limit))
+    query = select(RetrievalLog)
+    if user.role == UserRole.coordinator:
+        room_ids = await AdminService(db).get_coordinator_rooms(user.id)
+        slot_ids = select(KeySlot.id).where(KeySlot.room_id.in_(room_ids))
+        query = query.where(RetrievalLog.key_slot_id.in_(slot_ids))
+    r = await db.execute(query.order_by(RetrievalLog.retrieved_at.desc()).offset(skip).limit(limit))
     return [RetrievalLogOut.model_validate(l) for l in r.scalars()]
 
 
@@ -183,7 +190,12 @@ async def get_override_logs(
     skip: int = 0, limit: int = 100,
     db: AsyncSession = Depends(get_db),
 ) -> list[OverrideLogOut]:
-    r = await db.execute(select(OverrideLog).order_by(OverrideLog.ts.desc()).offset(skip).limit(limit))
+    query = select(OverrideLog)
+    if user.role == UserRole.coordinator:
+        room_ids = await AdminService(db).get_coordinator_rooms(user.id)
+        device_ids = select(KeySlot.device_id).where(KeySlot.room_id.in_(room_ids))
+        query = query.where(OverrideLog.device_id.in_(device_ids))
+    r = await db.execute(query.order_by(OverrideLog.ts.desc()).offset(skip).limit(limit))
     return [OverrideLogOut.model_validate(l) for l in r.scalars()]
 
 

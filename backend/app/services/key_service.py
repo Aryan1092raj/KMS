@@ -49,7 +49,7 @@ class KeyService:
 
         out = []
         for slot in slots:
-            active_log = await self._get_active_retrieval(slot.id)
+            active_log = await self._get_current_retrieval(slot.id)
             holder_name = None
             due_at = None
             if active_log:
@@ -102,10 +102,6 @@ class KeyService:
         if not updated:
             raise RuntimeError("slot_unavailable")
 
-        # The status flip and the retrieval log commit together. Committing the
-        # flip on its own would strand the slot as `retrieved` with no holder if
-        # anything below failed — _get_active_retrieval then returns None, so
-        # nobody can return the key and only manual SQL clears it.
         due_at = datetime.now(timezone.utc) + timedelta(hours=settings.default_possession_hours)
         log = RetrievalLog(
             key_slot_id=slot_id,
@@ -114,11 +110,16 @@ class KeyService:
             due_at=due_at,
         )
         self.db.add(log)
-        await self.db.commit()
-        await self.db.refresh(log)
 
         # MQTT dispense command
-        nonce = await self.mqtt.dispense_slot(slot.device_id, slot.slot_number)
+        try:
+            nonce = await self.mqtt.dispense_slot(slot.device_id, slot.slot_number)
+        except Exception:
+            await self.db.rollback()
+            raise
+
+        await self.db.commit()
+        await self.db.refresh(log)
 
         # Publish live status update to Redis channel
         redis = get_redis()
@@ -150,12 +151,16 @@ class KeyService:
         if not slot:
             raise ValueError("Slot not found.")
 
-        active_log = await self._get_active_retrieval(slot_id)
+        active_log = await self._get_current_retrieval(slot_id)
         if not active_log or active_log.user_id != user_id:
             raise PermissionError("You do not hold this key.")
 
-        # Unlock slot for reinsertion
-        await self.mqtt.unlock_slot(slot.device_id, slot.slot_number)
+        # Unlock slot for reinsertion before committing the matching DB state.
+        try:
+            await self.mqtt.unlock_slot(slot.device_id, slot.slot_number)
+        except Exception:
+            await self.db.rollback()
+            raise
 
         # Update DB
         now = datetime.now(timezone.utc)
@@ -178,7 +183,7 @@ class KeyService:
     async def extend(
         self, slot_id: uuid.UUID, user_id: uuid.UUID, req: ExtendRequest
     ) -> ExtendResponse:
-        active_log = await self._get_active_retrieval(slot_id)
+        active_log = await self._get_current_retrieval(slot_id)
         if not active_log or active_log.user_id != user_id:
             raise PermissionError("You do not hold this key.")
 
@@ -220,11 +225,11 @@ class KeyService:
         )
         return [row[0] for row in r.fetchall()]
 
-    async def _get_active_retrieval(self, slot_id: uuid.UUID) -> RetrievalLog | None:
+    async def _get_current_retrieval(self, slot_id: uuid.UUID) -> RetrievalLog | None:
         r = await self.db.execute(
             select(RetrievalLog).where(
                 RetrievalLog.key_slot_id == slot_id,
-                RetrievalLog.status == RetrievalStatus.active,
+                RetrievalLog.status.in_((RetrievalStatus.active, RetrievalStatus.overdue)),
             )
         )
         return r.scalar_one_or_none()
