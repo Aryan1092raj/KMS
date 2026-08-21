@@ -24,8 +24,8 @@ export default function TOTPVerifyPage() {
     setLoading(true);
     const finalCode = (overrideCode ?? code).trim();
     try {
-      const res = await auth.verifyTOTP(finalCode);
-      router.push(res.role === "admin" ? "/admin" : "/keys");
+      await auth.verifyTOTP(finalCode);
+      router.replace("/keys");
     } catch (err: any) {
       const detail = err.detail || "Invalid code. Try again.";
       // A consumed/expired token can never succeed here — bounce to login

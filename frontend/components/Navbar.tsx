@@ -12,6 +12,7 @@ export default function Navbar() {
   const { theme, toggleTheme } = useTheme();
   const [open, setOpen] = useState(false);
   const [user, setUser] = useState<{ role: string } | null>(null);
+  const [loggingOut, setLoggingOut] = useState(false);
 
   useEffect(() => setOpen(false), [pathname]);
 
@@ -20,9 +21,16 @@ export default function Navbar() {
   }, [pathname]);
 
   async function handleLogout() {
-    await auth.logout();
-    setUser(null);
-    router.push("/login");
+    if (loggingOut) return;
+    setLoggingOut(true);
+    try {
+      await auth.logout();
+    } finally {
+      setUser(null);
+      setOpen(false);
+      setLoggingOut(false);
+      router.replace("/login");
+    }
   }
 
   return (
@@ -48,8 +56,8 @@ export default function Navbar() {
             Key Status
           </Link>
           {user ? (
-            <button type="button" className="navbar-link navbar-link--button" onClick={handleLogout}>
-              Sign Out
+            <button type="button" className="navbar-link navbar-link--button" onClick={handleLogout} disabled={loggingOut}>
+              {loggingOut ? "Signing Out" : "Sign Out"}
             </button>
           ) : (
             <Link
