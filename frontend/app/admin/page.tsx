@@ -18,11 +18,12 @@ export default function AdminDashboardPage() {
     <div>
       <div className="page-header">
         <div>
-          <h1 className="page-title">Dashboard</h1>
-          <p className="page-subtitle">Live system overview</p>
+          <p className="eyebrow">Operations / Overview</p>
+          <h1 className="page-title">Control room</h1>
+          <p className="page-subtitle">Live status across keys, devices, and access.</p>
         </div>
         <button onClick={() => admin.dashboard().then(setData)} className="btn btn-ghost btn-sm">
-          ↻ Refresh
+          Refresh data
         </button>
       </div>
 
@@ -41,11 +42,10 @@ export default function AdminDashboardPage() {
         </div>
       ) : data ? (
         <>
-          {/* Tamper Alert Banner */}
           {data.unresolved_tamper_count > 0 && (
             <div className="tamper-alert" style={{ marginBottom: "1.5rem" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-                <span style={{ fontSize: "1.75rem" }}>🚨</span>
+                <span className="alert-mark">!</span>
                 <div>
                   <h3 style={{ color: "var(--c-danger)", fontWeight: 700, marginBottom: "0.25rem" }}>
                     {data.unresolved_tamper_count} Unresolved Tamper Event{data.unresolved_tamper_count > 1 ? "s" : ""}
@@ -61,32 +61,30 @@ export default function AdminDashboardPage() {
             </div>
           )}
 
-          {/* Stats */}
           <div className="stat-grid" style={{ marginBottom: "2rem" }}>
             <div className="stat-card stat-card--warning">
-              <div className="stat-icon">🗝️</div>
+              <div className="stat-index">01</div>
               <div className="stat-value">{data.keys_out}</div>
               <div className="stat-label">Keys Currently Out</div>
             </div>
             <div className="stat-card stat-card--danger">
-              <div className="stat-icon">⏰</div>
+              <div className="stat-index">02</div>
               <div className="stat-value">{data.overdue_count}</div>
               <div className="stat-label">Overdue Keys</div>
             </div>
             <div className="stat-card stat-card--primary">
-              <div className="stat-icon">📊</div>
+              <div className="stat-index">03</div>
               <div className="stat-value">{data.today_retrieval_count}</div>
               <div className="stat-label">Retrievals Today</div>
             </div>
             <div className="stat-card stat-card--success">
-              <div className="stat-icon">📡</div>
+              <div className="stat-index">04</div>
               <div className="stat-value">{data.device_summary.filter(d => d.status === "online").length}/{data.device_summary.length}</div>
               <div className="stat-label">Devices Online</div>
             </div>
           </div>
 
-          {/* Device Health */}
-          <h2 style={{ marginBottom: "1rem", fontSize: "1.1rem", fontWeight: 700 }}>Device Health</h2>
+          <div className="section-heading"><h2>Device health</h2><span>{data.device_summary.length} registered</span></div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "1rem", marginBottom: "2rem" }}>
             {data.device_summary.map((device) => {
               const battPct = device.battery_pct ?? 0;
@@ -100,7 +98,7 @@ export default function AdminDashboardPage() {
                     <span className={`dot dot--${device.status === "online" ? "green" : "red"}`} />
                     {device.name}
                     {device.on_backup_power && (
-                      <span style={{ fontSize: "0.7rem", color: "var(--c-warning)", marginLeft: "auto" }}>🔋 BACKUP</span>
+                      <span style={{ fontSize: "0.7rem", color: "var(--c-warning)", marginLeft: "auto" }}>BACKUP POWER</span>
                     )}
                   </div>
                   <div className="device-stats">
@@ -129,13 +127,12 @@ export default function AdminDashboardPage() {
             })}
           </div>
 
-          {/* Quick Links */}
-          <h2 style={{ marginBottom: "1rem", fontSize: "1.1rem", fontWeight: 700 }}>Quick Actions</h2>
+          <div className="section-heading"><h2>Shortcuts</h2><span>Common tasks</span></div>
           <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
-            <a href="/admin/monitoring" className="btn btn-primary">📡 Live Monitoring</a>
-            <a href="/admin/logs" className="btn btn-ghost">📋 Audit Logs</a>
-            <a href="/admin/users" className="btn btn-ghost">👥 Manage Users</a>
-            <a href="/admin/reports" className="btn btn-ghost">📊 Reports</a>
+            <a href="/admin/monitoring" className="btn btn-primary">Live monitoring</a>
+            <a href="/admin/logs" className="btn btn-ghost">Audit logs</a>
+            <a href="/admin/users" className="btn btn-ghost">Manage users</a>
+            <a href="/admin/reports" className="btn btn-ghost">Reports</a>
           </div>
         </>
       ) : (

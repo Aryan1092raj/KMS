@@ -125,7 +125,7 @@ a:hover { color: var(--c-accent); }
 .container { max-width: 1280px; margin: 0 auto; padding: 0 1.5rem; }
 .page { min-height: 100vh; padding: 2rem 0; }
 
-/* ── Floating Glass Pill Navbar ────────────────────────────────────────────── */
+/* ── Site Navbar ───────────────────────────────────────────────────────────── */
 .navbar-wrapper {
   position: sticky;
   top: 1rem;
@@ -144,8 +144,6 @@ a:hover { color: var(--c-accent); }
   max-width: 900px;
   padding: 0.5rem 0.75rem 0.5rem 1.25rem;
   background: var(--c-surface);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
   border: 1px solid var(--c-border);
   box-shadow: var(--shadow);
   border-radius: 999px;
@@ -165,6 +163,7 @@ a:hover { color: var(--c-accent); }
   align-items: center;
   gap: 0.35rem;
 }
+.navbar-menu-toggle { display: none; }
 .navbar-link {
   padding: 0.4rem 0.85rem;
   border-radius: 999px;
@@ -387,7 +386,7 @@ td { padding: 0.875rem 1rem; font-size: 0.875rem; }
 .sidebar {
   width: 260px;
   min-height: 100vh;
-  background: var(--c-surface);
+  background: var(--c-bg2);
   border-right: 1px solid var(--c-border);
   padding: 1.5rem 1rem;
   display: flex;
@@ -401,10 +400,14 @@ td { padding: 0.875rem 1rem; font-size: 0.875rem; }
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding: 0.75rem 1rem;
+  padding: 0.75rem 0.75rem 1.25rem;
   margin-bottom: 1.5rem;
+  border-bottom: 1px solid var(--c-border);
 }
-.sidebar-logo-text { font-weight: 800; font-size: 1.1rem; letter-spacing: 0.05em; }
+.sidebar-mark { display: grid; place-items: center; width: 30px; height: 30px; background: var(--c-accent); color: #06130f; font: 800 0.9rem 'JetBrains Mono', monospace; }
+.sidebar-logo-text { font-weight: 800; font-size: 1rem; letter-spacing: 0.04em; }
+.sidebar-logo-text span { color: var(--c-accent); }
+.sidebar-logo-text small { display: block; color: var(--c-text-dim); font: 600 0.58rem 'JetBrains Mono', monospace; letter-spacing: 0.12em; margin-top: 0.2rem; }
 
 .nav-item {
   display: flex;
@@ -437,6 +440,12 @@ td { padding: 0.875rem 1rem; font-size: 0.875rem; }
 /* ── Main content with sidebar ─────────────────────────────────────────────── */
 .layout-with-sidebar { display: flex; min-height: 100vh; }
 .main-content { flex: 1; margin-left: 260px; padding: 2rem; }
+.mobile-admin-bar, .sidebar-scrim { display: none; }
+.eyebrow { color: var(--c-accent); font: 600 0.68rem 'JetBrains Mono', monospace; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 0.55rem; }
+.section-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; margin: 2rem 0 1rem; }
+.section-heading h2 { margin: 0; font-size: 1.05rem; }
+.section-heading span { color: var(--c-text-dim); font: 500 0.72rem 'JetBrains Mono', monospace; }
+.alert-mark { display: grid; place-items: center; width: 2rem; height: 2rem; border: 1px solid var(--c-danger); color: var(--c-danger); font: 700 1.1rem 'JetBrains Mono', monospace; }
 
 /* ── Key Slot Grid ─────────────────────────────────────────────────────────── */
 .key-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.25rem; }
@@ -469,12 +478,18 @@ td { padding: 0.875rem 1rem; font-size: 0.875rem; }
   background: var(--c-surface);
   border: 1px solid var(--c-border);
   box-shadow: var(--shadow-sm);
-  border-radius: var(--radius);
+  border-radius: 4px;
   padding: 1.25rem;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
 }
+.stat-card { position: relative; overflow: hidden; }
+.stat-card::before { content: ''; position: absolute; inset: 0 auto 0 0; width: 3px; background: var(--c-border-light); }
+.stat-card--warning::before { background: var(--c-warning); }
+.stat-card--danger::before { background: var(--c-danger); }
+.stat-card--success::before { background: var(--c-success); }
+.stat-index { color: var(--c-text-dim); font: 600 0.7rem 'JetBrains Mono', monospace; }
 .stat-value { font-size: 2rem; font-weight: 800; line-height: 1; }
 .stat-label { font-size: 0.8rem; color: var(--c-text-muted); font-weight: 600; }
 .stat-card--warning .stat-value { color: var(--c-warning); }
@@ -814,9 +829,15 @@ td { padding: 0.875rem 1rem; font-size: 0.875rem; }
   .hero-meta { gap: 1rem 1.75rem; }
   .hero-meta dd { font-size: 1.4rem; }
   .council-inner { padding: 3.5rem 1.25rem; }
-  .navbar-pill { padding: 0.45rem 0.5rem 0.45rem 0.9rem; gap: 0.5rem; }
+  .navbar-wrapper { top: 0.5rem; padding: 0 0.75rem; }
+  .navbar-pill { position: relative; padding: 0.5rem 0.65rem 0.5rem 0.9rem; gap: 0.5rem; border-radius: 14px; }
   .navbar-brand { font-size: 0.95rem; }
-  .navbar-link { padding: 0.4rem 0.6rem; font-size: 0.8rem; }
+  .navbar-menu-toggle { display: grid; gap: 4px; width: 36px; height: 36px; place-content: center; border: 1px solid var(--c-border); background: var(--c-bg2); color: var(--c-text); cursor: pointer; }
+  .navbar-menu-toggle span { display: block; width: 16px; height: 2px; background: currentColor; }
+  .navbar-links { display: none; position: absolute; top: calc(100% + 0.5rem); left: 0; right: 0; flex-direction: column; align-items: stretch; gap: 0.25rem; padding: 0.5rem; background: var(--c-surface); border: 1px solid var(--c-border); border-radius: 14px; box-shadow: var(--shadow); }
+  .navbar-links--open { display: flex; }
+  .navbar-link { padding: 0.7rem 0.75rem; font-size: 0.85rem; border-radius: 8px; }
+  .theme-toggle-btn { justify-content: center; width: 100%; padding: 0.65rem 0.75rem; border-radius: 8px; }
 }
 
 /* Keeps content clear of the notch and the home indicator on iOS. Mobile-only —
@@ -846,8 +867,26 @@ td { padding: 0.875rem 1rem; font-size: 0.875rem; }
 
 /* ── Responsive ─────────────────────────────────────────────────────────── */
 @media (max-width: 768px) {
-  .sidebar { display: none; }
-  .main-content { margin-left: 0; padding: 1rem; }
+  .mobile-admin-bar { display: flex; position: sticky; top: 0; z-index: 150; height: 56px; align-items: center; justify-content: space-between; padding: 0 1rem; background: var(--c-bg2); border-bottom: 1px solid var(--c-border); }
+  .mobile-admin-bar .sidebar-logo-text { font-size: 0.9rem; }
+  .menu-toggle { display: grid; gap: 4px; width: 40px; height: 40px; place-content: center; border: 1px solid var(--c-border); background: var(--c-surface); color: var(--c-text); cursor: pointer; }
+  .menu-toggle span { display: block; width: 17px; height: 2px; background: currentColor; }
+  .sidebar { display: flex; width: min(82vw, 280px); min-height: 100dvh; transform: translateX(-100%); transition: transform var(--transition); box-shadow: 12px 0 30px rgba(0,0,0,.3); }
+  .sidebar--open { transform: translateX(0); }
+  .sidebar-scrim { display: block; position: fixed; inset: 56px 0 0; z-index: 120; border: 0; background: rgba(0,0,0,.55); cursor: pointer; }
+  .main-content { margin-left: 0; padding: 1.25rem max(1rem, env(safe-area-inset-left)) max(2rem, env(safe-area-inset-bottom)); }
   .key-grid { grid-template-columns: 1fr; }
   .stat-grid { grid-template-columns: 1fr 1fr; }
+  .page-header { align-items: flex-start; gap: 1rem; }
+  .page-header .btn { align-self: flex-start; }
+  .section-heading { margin-top: 1.5rem; }
+}
+
+@media (max-width: 480px) {
+  .stat-grid { gap: 0.65rem; }
+  .stat-card { padding: 1rem; }
+  .stat-value { font-size: 1.65rem; }
+  .page-title { font-size: 1.8rem; }
+  .page-header { flex-direction: column; }
+  .page-header .btn { width: 100%; justify-content: center; }
 }

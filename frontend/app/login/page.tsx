@@ -20,10 +20,8 @@ export default function LoginPage() {
     try {
       const result = await auth.login(email, password);
       if (result.requires_totp_setup) {
-        sessionStorage.setItem("temp_token", result.temp_token);
         router.push("/totp/setup");
       } else if (result.requires_totp) {
-        sessionStorage.setItem("temp_token", result.temp_token);
         router.push("/login/totp");
       } else {
         setError("Unexpected response from the server. Please try again.");

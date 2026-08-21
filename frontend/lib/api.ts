@@ -26,21 +26,21 @@ async function request<T>(
 
 export const auth = {
   login: (email: string, password: string) =>
-    request<{ requires_totp?: boolean; requires_totp_setup?: boolean; temp_token: string }>(
+    request<{ requires_totp?: boolean; requires_totp_setup?: boolean }>(
       "/auth/login",
       { method: "POST", body: JSON.stringify({ email, password }) }
     ),
 
-  verifyTOTP: (temp_token: string, code: string) =>
-    request<{ session_id: string; user_id: string; role: string }>(
+  verifyTOTP: (code: string) =>
+    request<{ user_id: string; role: string }>(
       "/auth/totp/verify",
-      { method: "POST", body: JSON.stringify({ temp_token, code }) }
+      { method: "POST", body: JSON.stringify({ code }) }
     ),
 
-  setupTOTP: (temp_token: string) =>
+  setupTOTP: () =>
     request<{ totp_uri: string; secret: string }>("/auth/totp/setup", {
       method: "POST",
-      body: JSON.stringify({ temp_token }),
+      body: JSON.stringify({}),
     }),
 
   logout: () => request<void>("/auth/logout", { method: "POST" }),

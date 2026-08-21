@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 
 const navItems = [
   { href: "/admin", label: "Dashboard" },
@@ -17,13 +18,23 @@ const navItems = [
 
 export default function AdminSidebar() {
   const pathname = usePathname();
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => setOpen(false), [pathname]);
 
   return (
-    <aside className="sidebar">
+    <>
+      <header className="mobile-admin-bar">
+        <Link href="/admin" className="sidebar-logo-text"><span>SNTC</span> OPS</Link>
+        <button className="menu-toggle" type="button" onClick={() => setOpen(!open)} aria-expanded={open} aria-controls="admin-navigation" aria-label={open ? "Close navigation" : "Open navigation"}>
+          <span /><span /><span />
+        </button>
+      </header>
+      {open && <button className="sidebar-scrim" type="button" aria-label="Close navigation" onClick={() => setOpen(false)} />}
+      <aside className={`sidebar${open ? " sidebar--open" : ""}`} id="admin-navigation">
       <div className="sidebar-logo">
-        <div className="sidebar-logo-text">
-          <span>SNTC</span> Admin
-        </div>
+        <span className="sidebar-mark">S</span>
+        <div className="sidebar-logo-text"><span>SNTC</span> <small>OPS CONSOLE</small></div>
       </div>
 
       <div className="nav-section">Navigation</div>
@@ -56,6 +67,7 @@ export default function AdminSidebar() {
       >
         Sign Out
       </button>
-    </aside>
+      </aside>
+    </>
   );
 }

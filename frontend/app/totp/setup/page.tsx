@@ -13,12 +13,7 @@ export default function TOTPSetupPage() {
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    const temp_token = sessionStorage.getItem("temp_token");
-    if (!temp_token) {
-      router.replace("/login");
-      return;
-    }
-    auth.setupTOTP(temp_token)
+    auth.setupTOTP()
       .then(setData)
       .catch((err: any) => setError(err.detail || "Failed to generate TOTP. Please re-authenticate."))
       .finally(() => setLoading(false));
