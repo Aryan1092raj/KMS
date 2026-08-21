@@ -14,7 +14,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "protocol.h"
+#include "../cabinet_esp/protocol.h"
 
 static ProtoCmd P(const char *line) {
   ProtoCmd c;
@@ -60,6 +60,11 @@ int main(void) {
   assert(c.verb == PCMD_GOTO && !c.ok);
   c = P("GOTO:12 34");
   assert(c.verb == PCMD_GOTO && !c.ok);
+
+  c = P("ANGLE:90");
+  assert(c.verb == PCMD_ANGLE && c.ok && c.num == 90);
+  c = P("ANGLE:9x");
+  assert(c.verb == PCMD_ANGLE && !c.ok);
 
   /* --- ACTUATE ---------------------------------------------------------- */
   c = P("ACTUATE:1");

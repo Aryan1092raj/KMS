@@ -7,6 +7,7 @@
 
   High -> Low Commands:
   - GOTO:<position>   -> Move stepper to <position>
+  - ANGLE:<degrees>   -> Move stepper to an angle in whole degrees
   - ACTUATE:<1/0>     -> Engage(1) or Disengage(0) the solenoid
   - BATT:?            -> Request battery percentage
   - STATUS:?          -> Request system status
@@ -52,6 +53,7 @@ typedef enum {
   PCMD_NONE = 0,     /* blank line — ignore, not an error                    */
   /* High -> Low */
   PCMD_GOTO,         /* num = target position                                */
+  PCMD_ANGLE,        /* num = target angle in whole degrees                   */
   PCMD_ACTUATE,      /* num = 1 engage / 0 disengage                         */
   PCMD_BATT_Q,       /* "BATT:?"                                            */
   PCMD_STATUS_Q,     /* "STATUS:?"                                          */
@@ -132,6 +134,9 @@ static inline void proto_parse(const char *line, ProtoCmd *out) {
 
   if (vlen == 4 && !strncmp(line, "GOTO", 4)) {
     out->verb = PCMD_GOTO;
+    out->ok = proto_strict_long(out->arg, &out->num);
+  } else if (vlen == 5 && !strncmp(line, "ANGLE", 5)) {
+    out->verb = PCMD_ANGLE;
     out->ok = proto_strict_long(out->arg, &out->num);
   } else if (vlen == 7 && !strncmp(line, "ACTUATE", 7)) {
     out->verb = PCMD_ACTUATE;

@@ -4,11 +4,8 @@
 // SoftAP + captive portal + LittleFS web UI, unchanged from the original
 // sketch. What changed is everything behind /api:
 //
-//   - /api/action now speaks the protocol.h line format the low level
-//     actually parses. The original shipped the raw HTTP body through the
-//     encrypted frame; the far end printed it to a debug console and stopped
-//     at "// TODO: parse JSON and actuate electronics here". No command ever
-//     reached the hardware.
+//   - /api/action now speaks the plaintext protocol.h line format accepted by
+//     the Arduino Uno low-level controller.
 //   - JSON bodies are read through AsyncCallbackJsonWebHandler. The original
 //     used request->getParam("plain", true), which only exists for
 //     application/x-www-form-urlencoded, so a real application/json POST fell
@@ -39,11 +36,9 @@
 
 #include "config.h"
 #include "protocol.h"
-#include "secure_link.h"
 
 DNSServer dnsServer;
 AsyncWebServer server(HTTP_PORT);
-SecureLink uart;
 
 // Lines waiting to go out on the UART. Written by the AsyncTCP task, read by
 // loop(), which is the only context that touches Serial1.
@@ -56,6 +51,7 @@ static int      snapBatt  = -1;          // -1 = not reported yet
 static int      snapState = -1;          // -1 = unknown, else SystemState
 static char     snapEvent[PROTO_MAX_LINE] = "";
 static uint32_t snapEventAt = 0;
+static uint32_t uartRejected = 0;
 
 // Session state. Both handlers that touch it run in the AsyncTCP task, so it
 // needs no lock — only loop() runs elsewhere and loop() never reads it.
@@ -65,6 +61,12 @@ static uint8_t  loginFails = 0;
 static uint32_t lockedUntil = 0;
 
 // ── Auth ─────────────────────────────────────────────────────────────────────
+
+static bool ctEqual(const uint8_t *a, const uint8_t *b, size_t n) {
+  uint8_t diff = 0;
+  for (size_t i = 0; i < n; i++) diff |= (uint8_t)(a[i] ^ b[i]);
+  return diff == 0;
+}
 
 static String genToken(size_t len = 40) {
   static const char *chars =
@@ -93,14 +95,14 @@ static bool checkSession(AsyncWebServerRequest *request) {
   // matching prefix through response timing, which is enough to walk a token
   // out one byte at a time.
   if (given.length() != sessionToken.length()) return false;
-  return sl_ct_equal((const uint8_t *)given.c_str(),
+  return ctEqual((const uint8_t *)given.c_str(),
                      (const uint8_t *)sessionToken.c_str(), given.length());
 }
 
 static bool passwordOk(const char *given) {
   const size_t n = strlen(ADMIN_PASSWORD);
   if (!given || strlen(given) != n) return false;
-  return sl_ct_equal((const uint8_t *)given,
+  return ctEqual((const uint8_t *)given,
                      (const uint8_t *)ADMIN_PASSWORD, n);
 }
 
@@ -117,7 +119,8 @@ static bool queueLine(const char *verb, const char *arg) {
   proto_parse(line, &c);
   if (!c.ok) return false;
   switch (c.verb) {
-    case PCMD_GOTO: case PCMD_ACTUATE: case PCMD_BATT_Q: case PCMD_STATUS_Q:
+    case PCMD_GOTO: case PCMD_ANGLE: case PCMD_ACTUATE:
+    case PCMD_BATT_Q: case PCMD_STATUS_Q:
       break;
     default:
       return false;   // not a command this end is allowed to send
@@ -224,6 +227,7 @@ static void onAction(AsyncWebServerRequest *request, JsonVariant &json) {
     proto_parse(raw, &c);
     switch (c.verb) {
       case PCMD_GOTO:      queued = c.ok && queueLine("GOTO", c.arg);    break;
+      case PCMD_ANGLE:     queued = c.ok && queueLine("ANGLE", c.arg);   break;
       case PCMD_ACTUATE:   queued = c.ok && queueLine("ACTUATE", c.arg); break;
       case PCMD_BATT_Q:    queued = queueLine("BATT", "?");             break;
       case PCMD_STATUS_Q:  queued = queueLine("STATUS", "?");           break;
@@ -242,6 +246,11 @@ static void onAction(AsyncWebServerRequest *request, JsonVariant &json) {
     char pos[16];
     snprintf(pos, sizeof pos, "%ld", (long)json["pos"].as<long>());
     queued = queueLine("GOTO", pos);
+  } else if (!strcmp(cmd, "ANGLE")) {
+    if (!json["degrees"].is<long>()) { sendErr(request, 400, "bad_degrees"); return; }
+    char degrees[16];
+    snprintf(degrees, sizeof degrees, "%ld", (long)json["degrees"].as<long>());
+    queued = queueLine("ANGLE", degrees);
   } else if (!strcmp(cmd, "ACTUATE")) {
     if (!json["on"].is<bool>()) { sendErr(request, 400, "bad_on"); return; }
     queued = queueLine("ACTUATE", json["on"].as<bool>() ? "1" : "0");
@@ -282,7 +291,7 @@ static void onStatus(AsyncWebServerRequest *request) {
            "\"last_event_age_ms\":%lu,\"uart_rejected\":%lu}",
            stName, batt, ev,
            (unsigned long)(evAt ? millis() - evAt : 0),
-           (unsigned long)uart.rejected());
+           (unsigned long)uartRejected);
   request->send(200, "application/json", body);
 }
 
@@ -293,8 +302,6 @@ void setup() {
   delay(200);
 
   Serial1.begin(COMM_BAUD_RATE, SERIAL_8N1, COMM_RX_PIN, COMM_TX_PIN);
-  uart.begin(&Serial1, SHARED_KEY);
-
   txQueue = xQueueCreate(8, PROTO_MAX_LINE);
 
   if (!LittleFS.begin()) Serial.println("LittleFS mount failed");
@@ -341,15 +348,33 @@ void setup() {
 void loop() {
   static uint32_t lastPoll = 0;
   char line[PROTO_MAX_LINE];
+  static size_t rxPos = 0;
+  static bool rxOverflow = false;
 
   dnsServer.processNextRequest();
 
   // Only context that writes the UART.
   while (xQueueReceive(txQueue, line, 0) == pdTRUE) {
-    if (!uart.send(line)) Serial.println("UART send failed");
+    Serial1.write((const uint8_t *)line, strlen(line));
   }
 
-  if (uart.poll(line, sizeof line)) handleReply(line);
+  while (Serial1.available()) {
+    const char c = (char)Serial1.read();
+    if (c == '\n') {
+      if (!rxOverflow && rxPos > 0) {
+        line[rxPos] = '\0';
+        ProtoCmd parsed;
+        proto_parse(line, &parsed);
+        if (parsed.verb == PCMD_UNKNOWN || !parsed.ok) uartRejected++;
+        else handleReply(line);
+      }
+      rxPos = 0;
+      rxOverflow = false;
+    } else if (!rxOverflow && c != '\r') {
+      if (rxPos + 1 < sizeof(line)) line[rxPos++] = c;
+      else rxOverflow = true;
+    }
+  }
 
   // Ask rather than wait: DONE and ERR arrive unsolicited, but STATUS and BATT
   // only come back when asked, and /api/status has to answer with something.

@@ -48,3 +48,5 @@ build/
 # ops helpers + tests stay local
 backend/scripts/
 backend/tests/
+.pio/
+.vscode/
